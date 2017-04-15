@@ -1,0 +1,14 @@
+[package]
+name = "urdf-rs"
+version = "0.1.0"
+authors = ["Takashi Ogura <t.ogura@gmail.com>"]
+description = "URDF parser using serde-xml-rs"
+license = "Apache-2.0"
+keywords = ["robotics", "robot", "ros", "urdf"]
+categories = ["data-structures", "parsing"]
+repository = "https://github.com/OTL/urdf-rs"
+
+[dependencies]
+serde-xml-rs = "0.1.2"
+serde = "0.9.7"
+serde_derive = "0.9.7"
