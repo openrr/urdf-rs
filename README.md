@@ -1,10 +1,13 @@
 # urdf-rs
+[![Build Status](https://travis-ci.org/OTL/urdf-rs.svg?branch=master)](https://travis-ci.org/OTL/urdf-rs)
 
 [URDF](http://wiki.ros.org/urdf) parser using [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
 
 Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
 
 You can access urdf elements like below sample.
+
+[Documentation](https://docs.rs/urdf-rs/)
 
 ```rust
 extern crate urdf_rs;
