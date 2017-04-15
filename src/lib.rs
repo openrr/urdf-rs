@@ -326,6 +326,7 @@ impl From<serde_xml_rs::Error> for UrdfError {
 /// extern crate urdf_rs;
 /// let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
 /// let links = urdf_robo.links;
+/// println!("{:?}", links[0].visual.origin.xyz);
 /// ```
 pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot, UrdfError> {
     let mut file = File::open(path)?;
@@ -383,7 +384,8 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot, UrdfError> {
 ///         </joint>
 ///     </robot>
 ///    "##;
-/// let robo = urdf_rs::read_from_string(s).unwrap();
+/// let urdf_robo = urdf_rs::read_from_string(s).unwrap();
+/// println!("{:?}", urdf_robo.links[0].visual.origin.xyz);
 /// ```
 
 pub fn read_from_string(string: &str) -> Result<Robot, UrdfError> {

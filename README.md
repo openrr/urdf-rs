@@ -5,14 +5,17 @@
 
 Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
 
-You can access urdf elements like below sample.
-
 [Documentation](https://docs.rs/urdf-rs/)
+
+## Example
+
+You can access urdf elements like below example.
 
 ```rust
 extern crate urdf_rs;
 let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
 let links = urdf_robo.links;
-println!("{}", links.visual.origin.xyz);
+println!("{:?}", links[0].visual.origin.xyz);
 let joints = urdf_robo.joints;
+println!("{:?}", joints[0].origin.xyz);
 ```
