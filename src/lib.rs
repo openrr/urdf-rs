@@ -32,11 +32,18 @@ pub enum Geometry {
     Box {
         #[serde(with = "urdf_vec3")]
         size: [f64; 3]
-        //size: String
     },
     Cylinder { radius: f64, length: f64 },
     Sphere { radius: f64 },
-    Mesh { filename: String, scale: f64 },
+    Mesh {
+        filename: String,
+        #[serde(default = "default_scale")]
+        scale: f64,
+    },
+}
+
+fn default_scale() -> f64 {
+    1.0f64
 }
 
 impl Default for Geometry {
@@ -470,5 +477,4 @@ fn it_works() {
     assert_eq!(xyz[0], 0.0);
     assert_eq!(xyz[1], 1.0);
     assert_eq!(xyz[2], -1.0);
-
 }
