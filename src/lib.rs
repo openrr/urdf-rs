@@ -38,12 +38,13 @@ pub enum Geometry {
     Mesh {
         filename: String,
         #[serde(default = "default_scale")]
-        scale: f64,
+        #[serde(with = "urdf_vec3")]
+        scale: [f64; 3],
     },
 }
 
-fn default_scale() -> f64 {
-    1.0f64
+fn default_scale() -> [f64; 3] {
+    [1.0f64; 3]
 }
 
 impl Default for Geometry {
@@ -215,13 +216,15 @@ pub enum JointType {
     Planar,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct JointLimit {
     #[serde(default)]
     pub lower: f64,
     #[serde(default)]
     pub upper: f64,
+    #[serde(default)]
     pub effort: f64,
+    #[serde(default)]
     pub velocity: f64,
 }
 
@@ -253,6 +256,7 @@ pub struct Joint {
     pub child: LinkName,
     #[serde(default)]
     pub axis: Axis,
+    #[serde(default)]
     pub limit: JointLimit,
     #[serde(default)]
     pub dynamics: Dynamics,
@@ -264,7 +268,9 @@ pub struct Joint {
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Dynamics {
+    #[serde(default)]
     damping: f64,
+    #[serde(default)]
     friction: f64,
 }
 
