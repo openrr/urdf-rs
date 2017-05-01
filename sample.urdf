@@ -76,6 +76,13 @@
       </material>
     </visual>
   </link>
+  <joint name="shoulder_yaw" type="revolute">
+    <origin xyz="0.0 0.2 0.2" />
+    <parent link="root" />
+    <child link="shoulder1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1" upper="1.0" effort="0" velocity="1.0"/>
+  </joint>
   <link name="wrist2">
     <visual>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
@@ -87,13 +94,6 @@
       </material>
     </visual>
   </link>
-  <joint name="shoulder_yaw" type="revolute">
-    <origin xyz="0.0 0.2 0.2" />
-    <parent link="root" />
-    <child link="shoulder1" />
-    <axis xyz="0 0 1" />
-    <limit lower="-1" upper="1.0" effort="0" velocity="1.0"/>
-  </joint>
   <joint name="shoulder_pitch" type="revolute">
     <origin xyz="0.0 0.1 0.0" />
     <parent link="shoulder1" />

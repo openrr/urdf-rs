@@ -22,30 +22,6 @@ println!("{:?}", joints[0].origin.xyz);
 
 ## Limitation
 
-### order of elements
-
-You have to repeat "link" tags and "joint" tags in the urdf, like
-
-```
-<link />
-<link />
-<link />
-<joint />
-<joint />
-<joint />
-```
-
-Below style does not work now.
-
-```
-<link />
-<joint />
-<link />
-<joint />
-<link />
-<joint />
-```
-
 ### Mesh
 
 * Only .obj files are supported now. Please convert meshes and edit the urdf.

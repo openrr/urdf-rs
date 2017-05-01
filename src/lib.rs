@@ -1,7 +1,36 @@
+//! # urdf-rs
+//! [![Build Status](https://travis-ci.org/OTL/urdf-rs.svg?branch=master)](https://travis-ci.org/OTL/urdf-rs)
+//!
+//! [URDF](http://wiki.ros.org/urdf) parser using [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
+//!
+//! Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
+//!
+//! # Examples
+//!
+//! You can access urdf elements like below example.
+//!
+//! ```
+//! extern crate urdf_rs;
+//! let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
+//! let links = urdf_robo.links;
+//! println!("{:?}", links[0].visual.origin.xyz);
+//! let joints = urdf_robo.joints;
+//! println!("{:?}", joints[0].origin.xyz);
+//! ```
+//!
+//! # Limitation
+//!
+//! ## Mesh
+//!
+//! * Only .obj files are supported now. Please convert meshes and edit the urdf.
+//! * `package://` path is ignored. $CWD is used instead.
+
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
 extern crate serde_xml_rs;
+extern crate xml;
+
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Mass {
@@ -296,6 +325,7 @@ use std::fmt;
 pub enum UrdfError {
     File(std::io::Error),
     Xml(serde_xml_rs::Error),
+    RustyXml(xml::BuilderError),
     Parse(String),
 }
 
@@ -304,6 +334,7 @@ impl fmt::Display for UrdfError {
         match *self {
             UrdfError::File(ref err) => err.fmt(f),
             UrdfError::Xml(ref err) => err.fmt(f),
+            UrdfError::RustyXml(ref err) => err.fmt(f),
             UrdfError::Parse(ref msg) => write!(f, "parse error {}", msg),
         }
     }
@@ -314,6 +345,7 @@ impl Error for UrdfError {
         match *self {
             UrdfError::File(ref err) => err.description(),
             UrdfError::Xml(ref err) => err.description(),
+            UrdfError::RustyXml(ref err) => err.description(),
             UrdfError::Parse(_) => "parse error",
         }
     }
@@ -329,6 +361,36 @@ impl From<serde_xml_rs::Error> for UrdfError {
     fn from(err: serde_xml_rs::Error) -> UrdfError {
         UrdfError::Xml(err)
     }
+}
+
+impl From<xml::BuilderError> for UrdfError {
+    fn from(err: xml::BuilderError) -> UrdfError {
+        UrdfError::RustyXml(err)
+    }
+}
+
+/// sort <link> and <joint> to avoid the issue
+/// https://github.com/RReverser/serde-xml-rs/issues/5
+fn sort_link_joint(string: &str) -> Result<String, UrdfError> {
+    let e: xml::Element = string.parse()?;
+    let mut links = Vec::new();
+    let mut joints = Vec::new();
+    for c in e.children.iter() {
+        match *c {
+            xml::Xml::ElementNode(ref xml_elm) => {
+                if xml_elm.name == "link" {
+                    links.push(xml::Xml::ElementNode(xml_elm.clone()));
+                } else if xml_elm.name == "joint" {
+                    joints.push(xml::Xml::ElementNode(xml_elm.clone()));
+                }
+            },
+            _ => {},
+        };
+    }
+    let mut new_elm = e.clone();
+    links.extend(joints);
+    new_elm.children = links;
+    Ok(format!("{}", new_elm))
 }
 
 /// Read urdf file and create Robot instance
@@ -402,7 +464,8 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot, UrdfError> {
 /// ```
 
 pub fn read_from_string(string: &str) -> Result<Robot, UrdfError> {
-    serde_xml_rs::deserialize(string.as_bytes())
+    let sorted_string = sort_link_joint(string)?;
+    serde_xml_rs::deserialize(sorted_string.as_bytes())
         .map_err(From::from)
 }
 
@@ -432,8 +495,6 @@ fn it_works() {
                     </geometry>
                 </collision>
             </link>
-            <link name="elbow1" />
-            <link name="wrist1" />
             <joint name="shoulder_pitch" type="revolute">
                 <origin xyz="0.0 0.0 0.1" />
                 <parent link="shoulder1" />
@@ -441,6 +502,8 @@ fn it_works() {
                 <axis xyz="0 1 -1" />
                 <limit lower="-1" upper="1.0" effort="0" velocity="1.0"/>
             </joint>
+            <link name="elbow1" />
+            <link name="wrist1" />
             <joint name="shoulder_pitch" type="revolute">
                 <origin xyz="0.0 0.0 0.0" />
                 <parent link="elbow1" />
