@@ -157,7 +157,7 @@ mod urdf_vec3 {
     where D: Deserializer
 {
         let s = String::deserialize(deserializer)?;
-        let vec = s.split(" ").filter_map(|x| x.parse::<f64>().ok()).collect::<Vec<_>>();
+        let vec = s.split(' ').filter_map(|x| x.parse::<f64>().ok()).collect::<Vec<_>>();
         if vec.len() != 3 {
             return Err(serde::de::Error::custom(
                 format!("failed to parse float array in {}", s)));
@@ -176,7 +176,7 @@ mod urdf_vec4 {
     where D: Deserializer
 {
         let s = String::deserialize(deserializer)?;
-        let vec = s.split(" ").filter_map(|x| x.parse::<f64>().ok()).collect::<Vec<_>>();
+        let vec = s.split(' ').filter_map(|x| x.parse::<f64>().ok()).collect::<Vec<_>>();
         if vec.len() != 4 {
             return Err(serde::de::Error::custom(
                 format!("failed to parse float array in {}", s)));
@@ -369,22 +369,18 @@ impl From<xml::BuilderError> for UrdfError {
     }
 }
 
-/// sort <link> and <joint> to avoid the issue
-/// https://github.com/RReverser/serde-xml-rs/issues/5
+/// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
 fn sort_link_joint(string: &str) -> Result<String, UrdfError> {
     let e: xml::Element = string.parse()?;
     let mut links = Vec::new();
     let mut joints = Vec::new();
-    for c in e.children.iter() {
-        match *c {
-            xml::Xml::ElementNode(ref xml_elm) => {
-                if xml_elm.name == "link" {
-                    links.push(xml::Xml::ElementNode(xml_elm.clone()));
-                } else if xml_elm.name == "joint" {
-                    joints.push(xml::Xml::ElementNode(xml_elm.clone()));
-                }
-            },
-            _ => {},
+    for c in &e.children {
+        if let xml::Xml::ElementNode(ref xml_elm) = *c {
+            if xml_elm.name == "link" {
+                links.push(xml::Xml::ElementNode(xml_elm.clone()));
+            } else if xml_elm.name == "joint" {
+                joints.push(xml::Xml::ElementNode(xml_elm.clone()));
+            }
         };
     }
     let mut new_elm = e.clone();
