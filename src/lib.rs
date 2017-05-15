@@ -76,6 +76,10 @@ fn default_scale() -> [f64; 3] {
     [1.0f64; 3]
 }
 
+fn default_one() -> f64 {
+    1.0f64
+}
+
 impl Default for Geometry {
     fn default() -> Geometry {
         Geometry::Box { size: [0.0f64, 0.0, 0.0] }
@@ -127,6 +131,7 @@ pub struct Visual {
 pub struct Collision {
     #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub origin: Pose,
     pub geometry: Geometry,
 }
@@ -260,14 +265,19 @@ pub struct JointLimit {
 #[derive(Debug, Deserialize, Default)]
 pub struct Mimic {
     joint: String,
+    #[serde(default = "default_one")]
     multiplier: f64,
+    #[serde(default)]
     offset: f64,
 }
 
 #[derive(Debug, Deserialize, Default)]
 pub struct SafetyController {
+    #[serde(default)]
     soft_lower_limit: f64,
+    #[serde(default)]
     soft_upper_limit: f64,
+    #[serde(default)]
     k_position: f64,
     k_velocity: f64,
 }
