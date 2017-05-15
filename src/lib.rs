@@ -1,9 +1,13 @@
 //! # urdf-rs
-//! [![Build Status](https://travis-ci.org/OTL/urdf-rs.svg?branch=master)](https://travis-ci.org/OTL/urdf-rs)
 //!
-//! [URDF](http://wiki.ros.org/urdf) parser using [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
+//! [![Build Status](https://travis-ci.org/OTL/urdf-rs.svg?branch=master)]
+//! (https://travis-ci.org/OTL/urdf-rs)
 //!
-//! Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
+//! [URDF](http://wiki.ros.org/urdf) parser using
+//! [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
+//!
+//! Only [link](http://wiki.ros.org/urdf/XML/link) and [joint]
+//! (http://wiki.ros.org/urdf/XML/joint) are supported.
 //!
 //! # Examples
 //!
@@ -17,13 +21,6 @@
 //! let joints = urdf_robo.joints;
 //! println!("{:?}", joints[0].origin.xyz);
 //! ```
-//!
-//! # Limitation
-//!
-//! ## Mesh
-//!
-//! * Only .obj files are supported now. Please convert meshes and edit the urdf.
-//! * `package://` path is ignored. $CWD is used instead.
 
 #[macro_use]
 extern crate serde_derive;
@@ -60,7 +57,7 @@ pub struct Inertial {
 pub enum Geometry {
     Box {
         #[serde(with = "urdf_vec3")]
-        size: [f64; 3]
+        size: [f64; 3],
     },
     Cylinder { radius: f64, length: f64 },
     Sphere { radius: f64 },
@@ -153,19 +150,20 @@ pub struct Link {
 #[derive(Deserialize, Debug)]
 pub struct Vec3 {
     #[serde(with = "urdf_vec3")]
-    pub data: [f64; 3]
+    pub data: [f64; 3],
 }
 
 mod urdf_vec3 {
     use serde::{self, Deserialize, Deserializer};
     pub fn deserialize<D>(deserializer: D) -> Result<[f64; 3], D::Error>
-    where D: Deserializer
-{
+        where D: Deserializer
+    {
         let s = String::deserialize(deserializer)?;
-        let vec = s.split(' ').filter_map(|x| x.parse::<f64>().ok()).collect::<Vec<_>>();
+        let vec = s.split(' ')
+            .filter_map(|x| x.parse::<f64>().ok())
+            .collect::<Vec<_>>();
         if vec.len() != 3 {
-            return Err(serde::de::Error::custom(
-                format!("failed to parse float array in {}", s)));
+            return Err(serde::de::Error::custom(format!("failed to parse float array in {}", s)));
         }
         let mut arr = [0.0f64; 3];
         for i in 0..3 {
@@ -178,13 +176,14 @@ mod urdf_vec3 {
 mod urdf_vec4 {
     use serde::{self, Deserialize, Deserializer};
     pub fn deserialize<D>(deserializer: D) -> Result<[f64; 4], D::Error>
-    where D: Deserializer
-{
+        where D: Deserializer
+    {
         let s = String::deserialize(deserializer)?;
-        let vec = s.split(' ').filter_map(|x| x.parse::<f64>().ok()).collect::<Vec<_>>();
+        let vec = s.split(' ')
+            .filter_map(|x| x.parse::<f64>().ok())
+            .collect::<Vec<_>>();
         if vec.len() != 4 {
-            return Err(serde::de::Error::custom(
-                format!("failed to parse float array in {}", s)));
+            return Err(serde::de::Error::custom(format!("failed to parse float array in {}", s)));
         }
         let mut arr = [0.0f64; 4];
         for i in 0..4 {
@@ -198,12 +197,12 @@ mod urdf_vec4 {
 #[derive(Debug, Deserialize)]
 pub struct Axis {
     #[serde(with = "urdf_vec3")]
-    pub xyz: [f64; 3]
+    pub xyz: [f64; 3],
 }
 
 impl Default for Axis {
     fn default() -> Axis {
-        Axis { xyz: [1.0f64, 0.0, 0.0,] }
+        Axis { xyz: [1.0f64, 0.0, 0.0] }
     }
 }
 
@@ -471,8 +470,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot, UrdfError> {
 
 pub fn read_from_string(string: &str) -> Result<Robot, UrdfError> {
     let sorted_string = sort_link_joint(string)?;
-    serde_xml_rs::deserialize(sorted_string.as_bytes())
-        .map_err(From::from)
+    serde_xml_rs::deserialize(sorted_string.as_bytes()).map_err(From::from)
 }
 
 #[test]
@@ -534,12 +532,12 @@ fn it_works() {
     assert_eq!(rpy[2], -0.3);
 
     match robo.links[0].visual.geometry {
-        Geometry::Box{size} => {
+        Geometry::Box { size } => {
             assert_eq!(size[0], 1.0f64);
             assert_eq!(size[1], 2.0f64);
             assert_eq!(size[2], 3.0f64);
-        },
-        _ => { panic!("geometry error") },
+        }
+        _ => panic!("geometry error"),
     }
 
     assert_eq!(robo.joints[0].name, "shoulder_pitch");
