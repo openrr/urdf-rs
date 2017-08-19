@@ -29,12 +29,12 @@ extern crate serde_xml_rs;
 extern crate xml;
 
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mass {
     pub value: f64,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Inertia {
     pub ixx: f64,
     pub ixy: f64,
@@ -44,7 +44,7 @@ pub struct Inertia {
     pub izz: f64,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Inertial {
     #[serde(default)]
     pub origin: Pose,
@@ -52,7 +52,7 @@ pub struct Inertial {
     pub inertia: Inertia,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Geometry {
     Box {
@@ -83,14 +83,14 @@ impl Default for Geometry {
     }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Color {
     #[serde(with = "urdf_vec4")]
     #[serde(default="default_rgba")]
     pub rgba: [f64; 4],
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Texture {
     pub filename: String,
 }
@@ -101,7 +101,7 @@ impl Default for Texture {
     }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Material {
     #[serde(default)]
     pub name: String,
@@ -112,7 +112,7 @@ pub struct Material {
 }
 
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Visual {
     #[serde(default)]
     pub name: String,
@@ -124,7 +124,7 @@ pub struct Visual {
 }
 
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Collision {
     #[serde(default)]
     pub name: String,
@@ -135,7 +135,7 @@ pub struct Collision {
 
 /// Urdf Link element
 /// See http://wiki.ros.org/urdf/XML/link for more detail.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Link {
     pub name: String,
     #[serde(default)]
@@ -147,7 +147,7 @@ pub struct Link {
 }
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Vec3 {
     #[serde(with = "urdf_vec3")]
     pub data: [f64; 3],
@@ -194,7 +194,7 @@ mod urdf_vec4 {
 }
 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Axis {
     #[serde(with = "urdf_vec3")]
     pub xyz: [f64; 3],
@@ -206,7 +206,7 @@ impl Default for Axis {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Pose {
     #[serde(with = "urdf_vec3")]
     #[serde(default="default_zero3")]
@@ -233,12 +233,12 @@ impl Default for Pose {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct LinkName {
     pub link: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum JointType {
     Revolute,
@@ -249,7 +249,7 @@ pub enum JointType {
     Planar,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct JointLimit {
     #[serde(default)]
     pub lower: f64,
@@ -261,7 +261,7 @@ pub struct JointLimit {
     pub velocity: f64,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mimic {
     joint: String,
     #[serde(default = "default_one")]
@@ -270,7 +270,7 @@ pub struct Mimic {
     offset: f64,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct SafetyController {
     #[serde(default)]
     soft_lower_limit: f64,
@@ -283,7 +283,7 @@ pub struct SafetyController {
 
 /// Urdf Joint element
 /// See http://wiki.ros.org/urdf/XML/joint for more detail.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Joint {
     pub name: String,
     #[serde(rename = "type")]
@@ -304,7 +304,7 @@ pub struct Joint {
     pub safety_controller: SafetyController,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Dynamics {
     #[serde(default)]
     damping: f64,
@@ -313,7 +313,7 @@ pub struct Dynamics {
 }
 
 /// Top level struct to access urdf.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Robot {
     pub name: String,
 
@@ -322,6 +322,9 @@ pub struct Robot {
 
     #[serde(rename = "joint", default)]
     pub joints: Vec<Joint>,
+
+    #[serde(rename = "material", default)]
+    pub materials: Vec<Material>,
 }
 
 use std::fs::File;
@@ -383,17 +386,21 @@ fn sort_link_joint(string: &str) -> Result<String, UrdfError> {
     let e: xml::Element = string.parse()?;
     let mut links = Vec::new();
     let mut joints = Vec::new();
+    let mut materials = Vec::new();
     for c in &e.children {
         if let xml::Xml::ElementNode(ref xml_elm) = *c {
             if xml_elm.name == "link" {
                 links.push(xml::Xml::ElementNode(xml_elm.clone()));
             } else if xml_elm.name == "joint" {
                 joints.push(xml::Xml::ElementNode(xml_elm.clone()));
+            } else if xml_elm.name == "material" {
+                materials.push(xml::Xml::ElementNode(xml_elm.clone()));
             }
         };
     }
     let mut new_elm = e.clone();
     links.extend(joints);
+    links.extend(materials);
     new_elm.children = links;
     Ok(format!("{}", new_elm))
 }
@@ -477,6 +484,10 @@ pub fn read_from_string(string: &str) -> Result<Robot, UrdfError> {
 fn it_works() {
     let s = r##"
         <robot name="robo">
+            <material name="blue">
+              <color rgba="0.0 0.0 0.8 1.0"/>
+            </material>
+
             <link name="shoulder1">
                 <inertial>
                     <origin xyz="0 0 0.5" rpy="0 0 0"/>
@@ -539,6 +550,7 @@ fn it_works() {
         }
         _ => panic!("geometry error"),
     }
+    assert_eq!(robo.materials.len(), 1);
 
     assert_eq!(robo.joints[0].name, "shoulder_pitch");
     let xyz = robo.joints[0].axis.xyz;
