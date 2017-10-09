@@ -1,4 +1,4 @@
-use deserialize::Robot;
+use deserialize::*;
 use errors::*;
 
 use serde_xml_rs;
