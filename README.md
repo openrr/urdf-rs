@@ -19,10 +19,3 @@ println!("{:?}", links[0].visual.origin.xyz);
 let joints = urdf_robo.joints;
 println!("{:?}", joints[0].origin.xyz);
 ```
-
-## Limitation
-
-### Mesh
-
-* Only .obj files are supported now. Please convert meshes and edit the urdf.
-* `package://` path is ignored. $CWD is used instead.
