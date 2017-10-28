@@ -8,15 +8,19 @@ use regex;
 use regex::Regex;
 
 pub fn convert_xacro_to_urdf<P>(filename: P) -> Result<String>
-    where P: AsRef<Path>
+where
+    P: AsRef<Path>,
 {
     let output = Command::new("rosrun")
-        .args(&["xacro",
-                "xacro",
-                "--inorder",
-                filename.as_ref()
-                    .to_str()
-                    .ok_or("failed to get str fro filename")?])
+        .args(&[
+            "xacro",
+            "xacro",
+            "--inorder",
+            filename
+                .as_ref()
+                .to_str()
+                .ok_or("failed to get str fro filename")?,
+        ])
         .output()
         .expect("failed to execute xacro. install by apt-get install ros-*-xacro");
     if output.status.success() {
@@ -43,20 +47,23 @@ pub fn rospack_find(package: &str) -> Option<String> {
 }
 
 
-pub fn expand_package_path(filename: &str, base_dir: &Path) -> String {
+pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
     if filename.starts_with("package://") {
         let re = Regex::new("^package://(\\w+)/").unwrap();
-        re.replace(filename,
-                   |ma: &regex::Captures| match rospack_find(&ma[1]) {
-                       Some(found_path) => found_path + "/",
-                       None => panic!("failed to find ros package {}", &ma[1]),
-                   })
+        re.replace(
+            filename,
+            |ma: &regex::Captures| match rospack_find(&ma[1]) {
+                Some(found_path) => found_path + "/",
+                None => panic!("failed to find ros package {}", &ma[1]),
+            },
+        )
     } else {
-        let mut relative_path_from_urdf = base_dir.to_owned();
+        let mut relative_path_from_urdf = base_dir.unwrap_or(Path::new("")).to_owned();
         relative_path_from_urdf.push(filename);
         relative_path_from_urdf.to_str().unwrap().to_owned()
     }
 }
+
 
 
 pub fn read_urdf_or_xacro(input_path: &Path) -> Result<Robot> {
@@ -70,4 +77,18 @@ pub fn read_urdf_or_xacro(input_path: &Path) -> Result<Robot> {
     } else {
         return Err(UrdfError::Command("failed to get extension".to_owned()));
     }
+}
+
+#[test]
+fn it_works() {
+    // test only for not packages
+    assert_eq!(expand_package_path("home/aaa", None), "home/aaa");
+    assert_eq!(
+        expand_package_path("home/aaa.obj", Some(Path::new("/var"))),
+        "/var/home/aaa.obj"
+    );
+    assert_eq!(
+        expand_package_path("/home/aaa.obj", Some(Path::new(""))),
+        "/home/aaa.obj"
+    );
 }
