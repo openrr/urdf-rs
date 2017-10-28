@@ -1,5 +1,5 @@
-# urdf-rs
-[![Build Status](https://travis-ci.org/OTL/urdf-rs.svg?branch=master)](https://travis-ci.org/OTL/urdf-rs)
+# urdf-rs [![Build Status](https://travis-ci.org/OTL/urdf-rs.svg?branch=master)](https://travis-ci.org/OTL/urdf-rs)  [![crates.io](https://img.shields.io/crates/v/urdf-rs.svg)](https://crates.io/crates/urdf-rs)
+
 
 [URDF](http://wiki.ros.org/urdf) parser using [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
 
