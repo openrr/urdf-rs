@@ -12,17 +12,20 @@ where
     P: AsRef<Path>,
 {
     let output = Command::new("rosrun")
-        .args(&[
-            "xacro",
-            "xacro",
-            "--inorder",
-            filename
-                .as_ref()
-                .to_str()
-                .ok_or("failed to get str fro filename")?,
-        ])
+        .args(
+            &[
+                "xacro",
+                "xacro",
+                "--inorder",
+                filename.as_ref().to_str().ok_or(
+                    "failed to get str fro filename",
+                )?,
+            ],
+        )
         .output()
-        .expect("failed to execute xacro. install by apt-get install ros-*-xacro");
+        .expect(
+            "failed to execute xacro. install by apt-get install ros-*-xacro",
+        );
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
     } else {
@@ -66,10 +69,13 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
 
 
 
-pub fn read_urdf_or_xacro(input_path: &Path) -> Result<Robot> {
-    if let Some(ext) = input_path.extension() {
+pub fn read_urdf_or_xacro<P>(input_path: P) -> Result<Robot>
+where
+    P: AsRef<Path>,
+{
+    if let Some(ext) = input_path.as_ref().extension() {
         if ext == "xacro" {
-            let urdf_utf = try!(convert_xacro_to_urdf(input_path));
+            let urdf_utf = try!(convert_xacro_to_urdf(input_path.as_ref()));
             read_from_string(&urdf_utf)
         } else {
             read_file(&input_path)
@@ -91,4 +97,6 @@ fn it_works() {
         expand_package_path("/home/aaa.obj", Some(Path::new(""))),
         "/home/aaa.obj"
     );
+    assert!(read_urdf_or_xacro("sample.urdf").is_ok());
+    assert!(read_urdf_or_xacro("sample_urdf").is_err());
 }

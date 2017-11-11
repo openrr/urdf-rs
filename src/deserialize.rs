@@ -15,7 +15,8 @@ pub struct Inertia {
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Inertial {
-    #[serde(default)] pub origin: Pose,
+    #[serde(default)]
+    pub origin: Pose,
     pub mass: Mass,
     pub inertia: Inertia,
 }
@@ -24,7 +25,8 @@ pub struct Inertial {
 #[serde(rename_all = "snake_case")]
 pub enum Geometry {
     Box {
-        #[serde(with = "urdf_vec3")] size: [f64; 3],
+        #[serde(with = "urdf_vec3")]
+        size: [f64; 3],
     },
     Cylinder { radius: f64, length: f64 },
     Sphere { radius: f64 },
@@ -46,9 +48,7 @@ fn default_one() -> f64 {
 
 impl Default for Geometry {
     fn default() -> Geometry {
-        Geometry::Box {
-            size: [0.0f64, 0.0, 0.0],
-        }
+        Geometry::Box { size: [0.0f64, 0.0, 0.0] }
     }
 }
 
@@ -66,33 +66,39 @@ pub struct Texture {
 
 impl Default for Texture {
     fn default() -> Texture {
-        Texture {
-            filename: "".to_string(),
-        }
+        Texture { filename: "".to_string() }
     }
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Material {
-    #[serde(default)] pub name: String,
-    #[serde(default)] pub color: Color,
-    #[serde(default)] pub texture: Texture,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub color: Color,
+    #[serde(default)]
+    pub texture: Texture,
 }
 
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Visual {
-    #[serde(default)] pub name: String,
-    #[serde(default)] pub origin: Pose,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub origin: Pose,
     pub geometry: Geometry,
-    #[serde(default)] pub material: Material,
+    #[serde(default)]
+    pub material: Material,
 }
 
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Collision {
-    #[serde(default)] pub name: String,
-    #[serde(default)] pub origin: Pose,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub origin: Pose,
     pub geometry: Geometry,
 }
 
@@ -101,15 +107,19 @@ pub struct Collision {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Link {
     pub name: String,
-    #[serde(default)] pub inertial: Inertial,
-    #[serde(default)] pub visual: Visual,
-    #[serde(default)] pub collision: Collision,
+    #[serde(default)]
+    pub inertial: Inertial,
+    #[serde(default)]
+    pub visual: Visual,
+    #[serde(default)]
+    pub collision: Collision,
 }
 
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Vec3 {
-    #[serde(with = "urdf_vec3")] pub data: [f64; 3],
+    #[serde(with = "urdf_vec3")]
+    pub data: [f64; 3],
 }
 
 mod urdf_vec3 {
@@ -161,14 +171,13 @@ mod urdf_vec4 {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Axis {
-    #[serde(with = "urdf_vec3")] pub xyz: [f64; 3],
+    #[serde(with = "urdf_vec3")]
+    pub xyz: [f64; 3],
 }
 
 impl Default for Axis {
     fn default() -> Axis {
-        Axis {
-            xyz: [1.0f64, 0.0, 0.0],
-        }
+        Axis { xyz: [1.0f64, 0.0, 0.0] }
     }
 }
 
@@ -217,24 +226,33 @@ pub enum JointType {
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct JointLimit {
-    #[serde(default)] pub lower: f64,
-    #[serde(default)] pub upper: f64,
-    #[serde(default)] pub effort: f64,
-    #[serde(default)] pub velocity: f64,
+    #[serde(default)]
+    pub lower: f64,
+    #[serde(default)]
+    pub upper: f64,
+    #[serde(default)]
+    pub effort: f64,
+    #[serde(default)]
+    pub velocity: f64,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mimic {
     joint: String,
-    #[serde(default = "default_one")] multiplier: f64,
-    #[serde(default)] offset: f64,
+    #[serde(default = "default_one")]
+    multiplier: f64,
+    #[serde(default)]
+    offset: f64,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct SafetyController {
-    #[serde(default)] soft_lower_limit: f64,
-    #[serde(default)] soft_upper_limit: f64,
-    #[serde(default)] k_position: f64,
+    #[serde(default)]
+    soft_lower_limit: f64,
+    #[serde(default)]
+    soft_upper_limit: f64,
+    #[serde(default)]
+    k_position: f64,
     k_velocity: f64,
 }
 
@@ -243,21 +261,30 @@ pub struct SafetyController {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Joint {
     pub name: String,
-    #[serde(rename = "type")] pub joint_type: JointType,
-    #[serde(default)] pub origin: Pose,
+    #[serde(rename = "type")]
+    pub joint_type: JointType,
+    #[serde(default)]
+    pub origin: Pose,
     pub parent: LinkName,
     pub child: LinkName,
-    #[serde(default)] pub axis: Axis,
-    #[serde(default)] pub limit: JointLimit,
-    #[serde(default)] pub dynamics: Dynamics,
-    #[serde(default)] pub mimic: Mimic,
-    #[serde(default)] pub safety_controller: SafetyController,
+    #[serde(default)]
+    pub axis: Axis,
+    #[serde(default)]
+    pub limit: JointLimit,
+    #[serde(default)]
+    pub dynamics: Dynamics,
+    #[serde(default)]
+    pub mimic: Mimic,
+    #[serde(default)]
+    pub safety_controller: SafetyController,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Dynamics {
-    #[serde(default)] damping: f64,
-    #[serde(default)] friction: f64,
+    #[serde(default)]
+    damping: f64,
+    #[serde(default)]
+    friction: f64,
 }
 
 /// Top level struct to access urdf.
@@ -265,9 +292,12 @@ pub struct Dynamics {
 pub struct Robot {
     pub name: String,
 
-    #[serde(rename = "link", default)] pub links: Vec<Link>,
+    #[serde(rename = "link", default)]
+    pub links: Vec<Link>,
 
-    #[serde(rename = "joint", default)] pub joints: Vec<Joint>,
+    #[serde(rename = "joint", default)]
+    pub joints: Vec<Joint>,
 
-    #[serde(rename = "material", default)] pub materials: Vec<Material>,
+    #[serde(rename = "material", default)]
+    pub materials: Vec<Material>,
 }
