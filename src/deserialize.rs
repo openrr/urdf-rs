@@ -271,9 +271,12 @@ pub struct Joint {
     pub axis: Axis,
     #[serde(default)]
     pub limit: JointLimit,
-    pub dynamics: Option<Dynamics>,
-    pub mimic: Option<Mimic>,
-    pub safety_controller: Option<SafetyController>,
+    #[serde(default)]
+    pub dynamics: Dynamics,
+    #[serde(default)]
+    pub mimic: Mimic,
+    #[serde(default)]
+    pub safety_controller: SafetyController,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
