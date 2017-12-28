@@ -39,7 +39,7 @@ fn sort_link_joint(string: &str) -> Result<String> {
 /// extern crate urdf_rs;
 /// let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
 /// let links = urdf_robo.links;
-/// println!("{:?}", links[0].visual.origin.xyz);
+/// println!("{:?}", links[0].visual[0].origin.xyz);
 /// ```
 pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
     let mut file = File::open(path)?;
@@ -98,7 +98,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 ///     </robot>
 ///    "##;
 /// let urdf_robo = urdf_rs::read_from_string(s).unwrap();
-/// println!("{:?}", urdf_robo.links[0].visual.origin.xyz);
+/// println!("{:?}", urdf_robo.links[0].visual[0].origin.xyz);
 /// ```
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
@@ -159,16 +159,17 @@ fn it_works() {
     assert_eq!(robo.name, "robo");
     assert_eq!(robo.links.len(), 3);
     assert_eq!(robo.joints.len(), 2);
-    let xyz = robo.links[0].visual.origin.xyz;
+    assert_eq!(robo.links[0].visual.len(), 1);
+    let xyz = robo.links[0].visual[0].origin.xyz;
     assert_eq!(xyz[0], 0.1);
     assert_eq!(xyz[1], 0.2);
     assert_eq!(xyz[2], 0.3);
-    let rpy = robo.links[0].visual.origin.rpy;
+    let rpy = robo.links[0].visual[0].origin.rpy;
     assert_eq!(rpy[0], -0.1);
     assert_eq!(rpy[1], -0.2);
     assert_eq!(rpy[2], -0.3);
 
-    match robo.links[0].visual.geometry {
+    match robo.links[0].visual[0].geometry {
         Geometry::Box { size } => {
             assert_eq!(size[0], 1.0f64);
             assert_eq!(size[1], 2.0f64);

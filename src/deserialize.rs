@@ -110,9 +110,9 @@ pub struct Link {
     #[serde(default)]
     pub inertial: Inertial,
     #[serde(default)]
-    pub visual: Visual,
+    pub visual: Vec<Visual>,
     #[serde(default)]
-    pub collision: Collision,
+    pub collision: Vec<Collision>,
 }
 
 
@@ -271,12 +271,9 @@ pub struct Joint {
     pub axis: Axis,
     #[serde(default)]
     pub limit: JointLimit,
-    #[serde(default)]
-    pub dynamics: Dynamics,
-    #[serde(default)]
-    pub mimic: Mimic,
-    #[serde(default)]
-    pub safety_controller: SafetyController,
+    pub dynamics: Option<Dynamics>,
+    pub mimic: Option<Mimic>,
+    pub safety_controller: Option<SafetyController>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

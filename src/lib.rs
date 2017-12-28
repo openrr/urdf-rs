@@ -17,7 +17,7 @@
 //! extern crate urdf_rs;
 //! let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
 //! let links = urdf_robo.links;
-//! println!("{:?}", links[0].visual.origin.xyz);
+//! println!("{:?}", links[0].visual[0].origin.xyz);
 //! let joints = urdf_robo.joints;
 //! println!("{:?}", joints[0].origin.xyz);
 //! ```
