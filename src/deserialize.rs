@@ -238,22 +238,22 @@ pub struct JointLimit {
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mimic {
-    joint: String,
+    pub joint: String,
     #[serde(default = "default_one")]
-    multiplier: f64,
+    pub multiplier: f64,
     #[serde(default)]
-    offset: f64,
+    pub offset: f64,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct SafetyController {
     #[serde(default)]
-    soft_lower_limit: f64,
+    pub soft_lower_limit: f64,
     #[serde(default)]
-    soft_upper_limit: f64,
+    pub soft_upper_limit: f64,
     #[serde(default)]
-    k_position: f64,
-    k_velocity: f64,
+    pub k_position: f64,
+    pub k_velocity: f64,
 }
 
 /// Urdf Joint element
@@ -282,9 +282,9 @@ pub struct Joint {
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Dynamics {
     #[serde(default)]
-    damping: f64,
+    pub damping: f64,
     #[serde(default)]
-    friction: f64,
+    pub friction: f64,
 }
 
 /// Top level struct to access urdf.

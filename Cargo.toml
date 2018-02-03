@@ -1,6 +1,6 @@
 [package]
 name = "urdf-rs"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Takashi Ogura <t.ogura@gmail.com>"]
 description = "URDF parser using serde-xml-rs"
 license = "Apache-2.0"
