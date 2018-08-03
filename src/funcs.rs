@@ -103,7 +103,8 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
     let sorted_string = sort_link_joint(string)?;
-    serde_xml_rs::deserialize(sorted_string.as_bytes()).map_err(From::from)
+    serde_xml_rs::from_str(&sorted_string).map_err(From::from)
+    //serde_xml_rs::from_str(sorted_string.as_bytes()).map_err(From::from)
 }
 
 #[test]
@@ -189,4 +190,7 @@ fn it_works() {
     assert_eq!(xyz[0], 0.0);
     assert_eq!(xyz[1], 1.0);
     assert_eq!(xyz[2], -1.0);
+
+    let serialized = serde_xml_rs::to_string(&robo).unwrap();
+    println!("{}", serialized);
 }

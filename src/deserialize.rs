@@ -1,9 +1,9 @@
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Mass {
     pub value: f64,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Inertia {
     pub ixx: f64,
     pub ixy: f64,
@@ -13,7 +13,7 @@ pub struct Inertia {
     pub izz: f64,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Inertial {
     #[serde(default)]
     pub origin: Pose,
@@ -21,7 +21,7 @@ pub struct Inertial {
     pub inertia: Inertia,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Geometry {
     Box {
@@ -52,14 +52,14 @@ impl Default for Geometry {
     }
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Color {
     #[serde(with = "urdf_vec4")]
     #[serde(default = "default_rgba")]
     pub rgba: [f64; 4],
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct Texture {
     pub filename: String,
 }
@@ -70,7 +70,7 @@ impl Default for Texture {
     }
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Material {
     #[serde(default)]
     pub name: String,
@@ -81,7 +81,7 @@ pub struct Material {
 }
 
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Visual {
     #[serde(default)]
     pub name: String,
@@ -93,7 +93,7 @@ pub struct Visual {
 }
 
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Collision {
     #[serde(default)]
     pub name: String,
@@ -104,7 +104,7 @@ pub struct Collision {
 
 /// Urdf Link element
 /// See http://wiki.ros.org/urdf/XML/link for more detail.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct Link {
     pub name: String,
     #[serde(default)]
@@ -116,17 +116,25 @@ pub struct Link {
 }
 
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize,Debug, Clone)]
 pub struct Vec3 {
     #[serde(with = "urdf_vec3")]
     pub data: [f64; 3],
 }
 
 mod urdf_vec3 {
-    use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<D>(deserializer: D) -> Result<[f64; 3], D::Error>
+    use serde::{self, Deserialize,Deserializer, Serializer};
+    pub fn serialize<S>(val : &[f64; 3], serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: Deserializer,
+        S: Serializer,
+    {
+        let msg = format!("{} {} {}", val[0], val[1], val[2]);
+        serializer.serialize_str(&msg)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[f64; 3], D::Error>
+    where
+        D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         let vec = s.split(' ')
@@ -146,10 +154,18 @@ mod urdf_vec3 {
 }
 
 mod urdf_vec4 {
-    use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<D>(deserializer: D) -> Result<[f64; 4], D::Error>
+    use serde::{self, Deserialize,Deserializer, Serializer};
+    pub fn serialize<S>(val : &[f64; 4], serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: Deserializer,
+        S: Serializer,
+    {
+        let msg = format!("{} {} {} {}", val[0], val[1], val[2], val[3]);
+        serializer.serialize_str(&msg)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[f64; 4], D::Error>
+    where
+        D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         let vec = s.split(' ')
@@ -169,7 +185,7 @@ mod urdf_vec4 {
 }
 
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct Axis {
     #[serde(with = "urdf_vec3")]
     pub xyz: [f64; 3],
@@ -181,7 +197,7 @@ impl Default for Axis {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct Pose {
     #[serde(with = "urdf_vec3")]
     #[serde(default = "default_zero3")]
@@ -208,12 +224,12 @@ impl Default for Pose {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct LinkName {
     pub link: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum JointType {
     Revolute,
@@ -224,7 +240,7 @@ pub enum JointType {
     Planar,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct JointLimit {
     #[serde(default)]
     pub lower: f64,
@@ -236,7 +252,7 @@ pub struct JointLimit {
     pub velocity: f64,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Mimic {
     pub joint: String,
     #[serde(default = "default_one")]
@@ -245,7 +261,7 @@ pub struct Mimic {
     pub offset: f64,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct SafetyController {
     #[serde(default)]
     pub soft_lower_limit: f64,
@@ -258,7 +274,7 @@ pub struct SafetyController {
 
 /// Urdf Joint element
 /// See http://wiki.ros.org/urdf/XML/joint for more detail.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct Joint {
     pub name: String,
     #[serde(rename = "type")]
@@ -279,7 +295,7 @@ pub struct Joint {
     pub safety_controller: SafetyController,
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize,Default, Clone)]
 pub struct Dynamics {
     #[serde(default)]
     pub damping: f64,
@@ -288,7 +304,7 @@ pub struct Dynamics {
 }
 
 /// Top level struct to access urdf.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize,Clone)]
 pub struct Robot {
     #[serde(default)]
     pub name: String,
