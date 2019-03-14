@@ -222,6 +222,7 @@ pub enum JointType {
     Fixed,
     Floating,
     Planar,
+    Free,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
