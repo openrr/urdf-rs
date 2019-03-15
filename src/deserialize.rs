@@ -223,7 +223,6 @@ pub enum JointType {
     Fixed,
     Floating,
     Planar,
-    Free,
     Spherical,
 }
 
