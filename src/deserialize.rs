@@ -29,6 +29,7 @@ pub enum Geometry {
         size: [f64; 3],
     },
     Cylinder { radius: f64, length: f64 },
+    Capsule { radius: f64, length: f64 },
     Sphere { radius: f64 },
     Mesh {
         filename: String,
@@ -223,6 +224,7 @@ pub enum JointType {
     Floating,
     Planar,
     Free,
+    Spherical,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
