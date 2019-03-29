@@ -103,7 +103,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
     let sorted_string = sort_link_joint(string)?;
-    serde_xml_rs::deserialize(sorted_string.as_bytes()).map_err(From::from)
+    serde_xml_rs::from_str(&sorted_string).map_err(From::from)
 }
 
 #[test]

@@ -125,9 +125,9 @@ pub struct Vec3 {
 
 mod urdf_vec3 {
     use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<D>(deserializer: D) -> Result<[f64; 3], D::Error>
+    pub fn deserialize<'a,D>(deserializer: D) -> Result<[f64; 3], D::Error>
     where
-        D: Deserializer,
+        D: Deserializer<'a>,
     {
         let s = String::deserialize(deserializer)?;
         let vec = s.split(' ')
@@ -148,9 +148,9 @@ mod urdf_vec3 {
 
 mod urdf_vec4 {
     use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<D>(deserializer: D) -> Result<[f64; 4], D::Error>
+    pub fn deserialize<'a,D>(deserializer: D) -> Result<[f64; 4], D::Error>
     where
-        D: Deserializer,
+        D: Deserializer<'a>,
     {
         let s = String::deserialize(deserializer)?;
         let vec = s.split(' ')
