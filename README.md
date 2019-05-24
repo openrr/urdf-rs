@@ -19,3 +19,8 @@ println!("{:?}", links[0].visual.origin.xyz);
 let joints = urdf_robo.joints;
 println!("{:?}", joints[0].origin.xyz);
 ```
+
+## Contributors
+
+* Johan Andersson
+* Tom Olsson
