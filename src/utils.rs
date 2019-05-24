@@ -59,7 +59,7 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
                 Some(found_path) => found_path + "/",
                 None => panic!("failed to find ros package {}", &ma[1]),
             },
-        )
+        ).to_string()
     } else {
         let mut relative_path_from_urdf = base_dir.unwrap_or(Path::new("")).to_owned();
         relative_path_from_urdf.push(filename);
