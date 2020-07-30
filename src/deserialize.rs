@@ -33,9 +33,8 @@ pub enum Geometry {
     Sphere { radius: f64 },
     Mesh {
         filename: String,
-        #[serde(default = "default_scale")]
-        #[serde(with = "urdf_vec3")]
-        scale: [f64; 3],
+        #[serde(with = "urdf_option_vec3")]
+        scale: Option<[f64; 3]>,
     },
 }
 
@@ -56,7 +55,6 @@ impl Default for Geometry {
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Color {
     #[serde(with = "urdf_vec4")]
-    #[serde(default = "default_rgba")]
     pub rgba: [f64; 4],
 }
 
@@ -73,31 +71,25 @@ impl Default for Texture {
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Material {
-    #[serde(default)]
     pub name: String,
-    #[serde(default)]
-    pub color: Color,
-    #[serde(default)]
-    pub texture: Texture,
+    pub color: Option<Color>,
+    pub texture: Option<Texture>,
 }
 
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Visual {
-    #[serde(default)]
-    pub name: String,
+    pub name: Option<String>,
     #[serde(default)]
     pub origin: Pose,
     pub geometry: Geometry,
-    #[serde(default)]
-    pub material: Material,
+    pub material: Option<Material>,
 }
 
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Collision {
-    #[serde(default)]
-    pub name: String,
+    pub name: Option<String>,
     #[serde(default)]
     pub origin: Pose,
     pub geometry: Geometry,
@@ -143,6 +135,30 @@ mod urdf_vec3 {
             arr[i] = vec[i];
         }
         Ok(arr)
+    }
+}
+
+mod urdf_option_vec3 {
+    use serde::{self, Deserialize, Deserializer};
+    pub fn deserialize<'a,D>(deserializer: D) -> Result<Option<[f64; 3]>, D::Error>
+    where
+        D: Deserializer<'a>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let vec = s.split(' ')
+            .filter_map(|x| x.parse::<f64>().ok())
+            .collect::<Vec<_>>();
+        if vec.is_empty() {
+            Ok(None)
+        } else if vec.len() == 3 {
+            let mut arr = [0.0; 3];
+            arr.copy_from_slice(&vec);
+            Ok(Some(arr))
+        } else {
+            Err(serde::de::Error::custom(
+                format!("failed to parse float array in {}", s),
+            ))
+        }
     }
 }
 
@@ -196,10 +212,6 @@ fn default_zero3() -> [f64; 3] {
     [0.0f64, 0.0, 0.0]
 }
 
-fn default_rgba() -> [f64; 4] {
-    [1.0f64, 1.0, 1.0, 1.0]
-}
-
 impl Default for Pose {
     fn default() -> Pose {
         Pose {
@@ -232,19 +244,15 @@ pub struct JointLimit {
     pub lower: f64,
     #[serde(default)]
     pub upper: f64,
-    #[serde(default)]
     pub effort: f64,
-    #[serde(default)]
     pub velocity: f64,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mimic {
     pub joint: String,
-    #[serde(default = "default_one")]
-    pub multiplier: f64,
-    #[serde(default)]
-    pub offset: f64,
+    pub multiplier: Option<f64>,
+    pub offset: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -273,12 +281,9 @@ pub struct Joint {
     pub axis: Axis,
     #[serde(default)]
     pub limit: JointLimit,
-    #[serde(default)]
-    pub dynamics: Dynamics,
-    #[serde(default)]
-    pub mimic: Mimic,
-    #[serde(default)]
-    pub safety_controller: SafetyController,
+    pub dynamics: Option<Dynamics>,
+    pub mimic: Option<Mimic>,
+    pub safety_controller: Option<SafetyController>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
