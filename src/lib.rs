@@ -1,7 +1,7 @@
 //! # urdf-rs
 //!
-//! [![Build Status](https://travis-ci.org/OTL/urdf-rs.svg?branch=master)]
-//! (https://travis-ci.org/OTL/urdf-rs)
+//! [![Build Status](https://travis-ci.org/openrr/urdf-rs.svg?branch=master)]
+//! (https://travis-ci.org/openrr/urdf-rs)
 //!
 //! [URDF](http://wiki.ros.org/urdf) parser using
 //! [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.

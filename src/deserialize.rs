@@ -38,14 +38,6 @@ pub enum Geometry {
     },
 }
 
-fn default_scale() -> [f64; 3] {
-    [1.0f64; 3]
-}
-
-fn default_one() -> f64 {
-    1.0f64
-}
-
 impl Default for Geometry {
     fn default() -> Geometry {
         Geometry::Box { size: [0.0f64, 0.0, 0.0] }
