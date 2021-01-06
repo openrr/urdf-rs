@@ -75,7 +75,7 @@ where
 {
     if let Some(ext) = input_path.as_ref().extension() {
         if ext == "xacro" {
-            let urdf_utf = try!(convert_xacro_to_urdf(input_path.as_ref()));
+            let urdf_utf = convert_xacro_to_urdf(input_path.as_ref())?;
             read_from_string(&urdf_utf)
         } else {
             read_file(&input_path)

@@ -6,12 +6,12 @@ description = "URDF parser using serde-xml-rs"
 license = "Apache-2.0"
 keywords = ["robotics", "robot", "ros", "urdf"]
 categories = ["data-structures", "parsing"]
-repository = "https://github.com/OTL/urdf-rs"
+repository = "https://github.com/openrr/urdf-rs"
 documentation = "http://docs.rs/urdf-rs"
 
 [dependencies]
-serde-xml-rs = "0.3.1"
-serde = "1.0.89"
-serde_derive = "1.0.89"
-RustyXML = "0.1.1"
-regex = "1.1.2"
+serde-xml-rs = "0.4.0"
+serde = "1.0.118"
+serde_derive = "1.0.118"
+RustyXML = "0.3.0"
+regex = "1.4.2"

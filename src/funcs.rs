@@ -3,9 +3,7 @@ use errors::*;
 
 use serde_xml_rs;
 use std::path::Path;
-use std::io::prelude::*;
 use xml;
-use std::fs::File;
 
 /// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
 fn sort_link_joint(string: &str) -> Result<String> {
@@ -42,12 +40,8 @@ fn sort_link_joint(string: &str) -> Result<String> {
 /// println!("{:?}", links[0].visual[0].origin.xyz);
 /// ```
 pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
-    let mut file = File::open(path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    read_from_string(&contents)
+    read_from_string(&std::fs::read_to_string(path)?)
 }
-
 
 /// Read from string instead of file.
 ///
