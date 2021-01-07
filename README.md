@@ -23,3 +23,5 @@ println!("{:?}", joints[0].origin.xyz);
 
 * Johan Andersson
 * Tom Olsson
+* Nate Kent
+* Wout Schellaert
