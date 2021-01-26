@@ -14,20 +14,12 @@
 //! You can access urdf elements like below example.
 //!
 //! ```
-//! extern crate urdf_rs;
 //! let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
 //! let links = urdf_robo.links;
 //! println!("{:?}", links[0].visual[0].origin.xyz);
 //! let joints = urdf_robo.joints;
 //! println!("{:?}", joints[0].origin.xyz);
 //! ```
-
-extern crate regex;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_xml_rs;
-extern crate xml;
 
 mod errors;
 pub use errors::*;

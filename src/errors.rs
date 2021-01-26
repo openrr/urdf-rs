@@ -1,9 +1,6 @@
-use serde_xml_rs;
-use std;
 use std::error::Error;
 use std::fmt;
 use std::string;
-use xml;
 
 #[derive(Debug)]
 pub enum UrdfError {
