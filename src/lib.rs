@@ -1,13 +1,12 @@
 //! # urdf-rs
 //!
-//! [![Build Status](https://travis-ci.org/openrr/urdf-rs.svg?branch=master)]
-//! (https://travis-ci.org/openrr/urdf-rs)
+//! [![Build Status](https://travis-ci.org/openrr/urdf-rs.svg?branch=master)](https://travis-ci.org/openrr/urdf-rs)
 //!
 //! [URDF](http://wiki.ros.org/urdf) parser using
 //! [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
 //!
-//! Only [link](http://wiki.ros.org/urdf/XML/link) and [joint]
-//! (http://wiki.ros.org/urdf/XML/joint) are supported.
+//! Only [link](http://wiki.ros.org/urdf/XML/link) and
+//! [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
 //!
 //! # Examples
 //!
