@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mass {
     pub value: f64,

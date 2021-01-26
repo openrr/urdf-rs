@@ -4,7 +4,6 @@ use crate::funcs::*;
 
 use std::path::Path;
 use std::process::Command;
-use regex;
 use regex::Regex;
 
 pub fn convert_xacro_to_urdf<P>(filename: P) -> Result<String>

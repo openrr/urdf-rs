@@ -1,9 +1,7 @@
 use crate::deserialize::*;
 use crate::errors::*;
 
-use serde_xml_rs;
 use std::path::Path;
-use xml;
 
 /// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
 fn sort_link_joint(string: &str) -> Result<String> {
@@ -34,7 +32,6 @@ fn sort_link_joint(string: &str) -> Result<String> {
 /// # Examples
 ///
 /// ```
-/// extern crate urdf_rs;
 /// let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
 /// let links = urdf_robo.links;
 /// println!("{:?}", links[0].visual[0].origin.xyz);
