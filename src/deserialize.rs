@@ -90,7 +90,7 @@ pub struct Collision {
 }
 
 /// Urdf Link element
-/// See http://wiki.ros.org/urdf/XML/link for more detail.
+/// See <http://wiki.ros.org/urdf/XML/link> for more detail.
 #[derive(Debug, Deserialize, Clone)]
 pub struct Link {
     pub name: String,
@@ -261,7 +261,7 @@ pub struct SafetyController {
 }
 
 /// Urdf Joint element
-/// See http://wiki.ros.org/urdf/XML/joint for more detail.
+/// See <http://wiki.ros.org/urdf/XML/joint> for more detail.
 #[derive(Debug, Deserialize, Clone)]
 pub struct Joint {
     pub name: String,
