@@ -1,6 +1,6 @@
-use deserialize::Robot;
-use errors::*;
-use funcs::*;
+use crate::deserialize::Robot;
+use crate::errors::*;
+use crate::funcs::*;
 
 use std::path::Path;
 use std::process::Command;
