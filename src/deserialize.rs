@@ -218,7 +218,7 @@ pub struct LinkName {
     pub link: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum JointType {
     Revolute,
