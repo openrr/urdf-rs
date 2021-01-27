@@ -11,3 +11,17 @@ matrix:
   fast_finish: true
   allow_failures:
     - rust: nightly
+  include:
+    - name: cargo fmt
+      rust: stable
+      script:
+        - rustup component add rustfmt
+        - cargo fmt
+
+script:
+  - cargo build
+  - cargo test
+
+notifications:
+  email:
+    on_success: never

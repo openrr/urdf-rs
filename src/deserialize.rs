@@ -30,9 +30,17 @@ pub enum Geometry {
         #[serde(with = "urdf_vec3")]
         size: [f64; 3],
     },
-    Cylinder { radius: f64, length: f64 },
-    Capsule { radius: f64, length: f64 },
-    Sphere { radius: f64 },
+    Cylinder {
+        radius: f64,
+        length: f64,
+    },
+    Capsule {
+        radius: f64,
+        length: f64,
+    },
+    Sphere {
+        radius: f64,
+    },
     Mesh {
         filename: String,
         #[serde(with = "urdf_option_vec3")]
@@ -42,7 +50,9 @@ pub enum Geometry {
 
 impl Default for Geometry {
     fn default() -> Geometry {
-        Geometry::Box { size: [0.0f64, 0.0, 0.0] }
+        Geometry::Box {
+            size: [0.0f64, 0.0, 0.0],
+        }
     }
 }
 
@@ -59,7 +69,9 @@ pub struct Texture {
 
 impl Default for Texture {
     fn default() -> Texture {
-        Texture { filename: "".to_string() }
+        Texture {
+            filename: "".to_string(),
+        }
     }
 }
 
@@ -70,7 +82,6 @@ pub struct Material {
     pub texture: Option<Texture>,
 }
 
-
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Visual {
     pub name: Option<String>,
@@ -79,7 +90,6 @@ pub struct Visual {
     pub geometry: Geometry,
     pub material: Option<Material>,
 }
-
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Collision {
@@ -102,7 +112,6 @@ pub struct Link {
     pub collision: Vec<Collision>,
 }
 
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct Vec3 {
     #[serde(with = "urdf_vec3")]
@@ -111,18 +120,20 @@ pub struct Vec3 {
 
 mod urdf_vec3 {
     use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<'a,D>(deserializer: D) -> Result<[f64; 3], D::Error>
+    pub fn deserialize<'a, D>(deserializer: D) -> Result<[f64; 3], D::Error>
     where
         D: Deserializer<'a>,
     {
         let s = String::deserialize(deserializer)?;
-        let vec = s.split(' ')
+        let vec = s
+            .split(' ')
             .filter_map(|x| x.parse::<f64>().ok())
             .collect::<Vec<_>>();
         if vec.len() != 3 {
-            return Err(serde::de::Error::custom(
-                format!("failed to parse float array in {}", s),
-            ));
+            return Err(serde::de::Error::custom(format!(
+                "failed to parse float array in {}",
+                s
+            )));
         }
         let mut arr = [0.0f64; 3];
         for i in 0..3 {
@@ -134,12 +145,13 @@ mod urdf_vec3 {
 
 mod urdf_option_vec3 {
     use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<'a,D>(deserializer: D) -> Result<Option<[f64; 3]>, D::Error>
+    pub fn deserialize<'a, D>(deserializer: D) -> Result<Option<[f64; 3]>, D::Error>
     where
         D: Deserializer<'a>,
     {
         let s = String::deserialize(deserializer)?;
-        let vec = s.split(' ')
+        let vec = s
+            .split(' ')
             .filter_map(|x| x.parse::<f64>().ok())
             .collect::<Vec<_>>();
         if vec.is_empty() {
@@ -149,27 +161,30 @@ mod urdf_option_vec3 {
             arr.copy_from_slice(&vec);
             Ok(Some(arr))
         } else {
-            Err(serde::de::Error::custom(
-                format!("failed to parse float array in {}", s),
-            ))
+            Err(serde::de::Error::custom(format!(
+                "failed to parse float array in {}",
+                s
+            )))
         }
     }
 }
 
 mod urdf_vec4 {
     use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<'a,D>(deserializer: D) -> Result<[f64; 4], D::Error>
+    pub fn deserialize<'a, D>(deserializer: D) -> Result<[f64; 4], D::Error>
     where
         D: Deserializer<'a>,
     {
         let s = String::deserialize(deserializer)?;
-        let vec = s.split(' ')
+        let vec = s
+            .split(' ')
             .filter_map(|x| x.parse::<f64>().ok())
             .collect::<Vec<_>>();
         if vec.len() != 4 {
-            return Err(serde::de::Error::custom(
-                format!("failed to parse float array in {}", s),
-            ));
+            return Err(serde::de::Error::custom(format!(
+                "failed to parse float array in {}",
+                s
+            )));
         }
         let mut arr = [0.0f64; 4];
         for i in 0..4 {
@@ -179,7 +194,6 @@ mod urdf_vec4 {
     }
 }
 
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct Axis {
     #[serde(with = "urdf_vec3")]
@@ -188,7 +202,9 @@ pub struct Axis {
 
 impl Default for Axis {
     fn default() -> Axis {
-        Axis { xyz: [1.0f64, 0.0, 0.0] }
+        Axis {
+            xyz: [1.0f64, 0.0, 0.0],
+        }
     }
 }
 
