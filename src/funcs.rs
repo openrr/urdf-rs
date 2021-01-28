@@ -5,7 +5,7 @@ use std::path::Path;
 
 /// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
 fn sort_link_joint(string: &str) -> Result<String> {
-    let e: xml::Element = string.parse()?;
+    let e: xml::Element = string.parse().map_err(UrdfError::new)?;
     let mut links = Vec::new();
     let mut joints = Vec::new();
     let mut materials = Vec::new();
@@ -94,7 +94,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
     let sorted_string = sort_link_joint(string)?;
-    serde_xml_rs::from_str(&sorted_string).map_err(From::from)
+    serde_xml_rs::from_str(&sorted_string).map_err(UrdfError::new)
 }
 
 #[test]
