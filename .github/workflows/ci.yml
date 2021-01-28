@@ -20,7 +20,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install Rust
       run: rustup update ${{ matrix.rust }} && rustup default ${{ matrix.rust }}
-    - run: cargo fmt
-      if: matrix.target == 'stable'
+    - run: cargo fmt -- --check
+      if: matrix.rust == 'stable'
     - run: cargo build --verbose
     - run: cargo test --verbose
