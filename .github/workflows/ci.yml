@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        rust: [ stable, beta, nightly ]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust
+      run: rustup update ${{ matrix.rust }} && rustup default ${{ matrix.rust }}
+    - run: cargo fmt
+      if: matrix.target == 'stable'
+    - run: cargo build --verbose
+    - run: cargo test --verbose
