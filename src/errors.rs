@@ -1,58 +1,54 @@
-use std::error::Error;
-use std::fmt;
-use std::string;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub enum UrdfError {
-    File(::std::io::Error),
-    Xml(::serde_xml_rs::Error),
-    RustyXml(::xml::BuilderError),
-    Parse(String),
+/// Alias for a `Result` with the error type `UrdfError`.
+pub type Result<T> = std::result::Result<T, UrdfError>;
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct UrdfError(#[from] ErrorKind);
+
+// Hiding error variants from a library's public error type to prevent
+// dependency updates from becoming breaking changes.
+// We can add `UrdfErrorKind` enum or `is_*` methods that indicate the kind of
+// error if needed, but don't expose dependencies' types directly in the
+// public API.
+#[derive(Debug, Error)]
+pub(crate) enum ErrorKind {
+    #[error(transparent)]
+    File(#[from] std::io::Error),
+    #[error(transparent)]
+    Xml(#[from] serde_xml_rs::Error),
+    #[error(transparent)]
+    RustyXml(#[from] xml::BuilderError),
+    #[error("command error {}", .0)]
     Command(String),
 }
 
-pub type Result<T> = ::std::result::Result<T, UrdfError>;
-
-impl fmt::Display for UrdfError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            UrdfError::File(ref err) => err.fmt(f),
-            UrdfError::Xml(ref err) => err.fmt(f),
-            UrdfError::RustyXml(ref err) => err.fmt(f),
-            UrdfError::Parse(ref msg) => write!(f, "parse error {}", msg),
-            UrdfError::Command(ref msg) => write!(f, "command error {}", msg),
-        }
+impl UrdfError {
+    pub(crate) fn new(err: impl Into<ErrorKind>) -> Self {
+        Self(err.into())
     }
 }
-
-impl Error for UrdfError {}
 
 impl From<std::io::Error> for UrdfError {
     fn from(err: std::io::Error) -> UrdfError {
-        UrdfError::File(err)
+        ErrorKind::File(err).into()
     }
 }
 
-impl From<serde_xml_rs::Error> for UrdfError {
-    fn from(err: serde_xml_rs::Error) -> UrdfError {
-        UrdfError::Xml(err)
+impl From<&str> for UrdfError {
+    fn from(err: &str) -> UrdfError {
+        ErrorKind::Command(err.to_owned()).into()
     }
 }
 
-impl From<xml::BuilderError> for UrdfError {
-    fn from(err: xml::BuilderError) -> UrdfError {
-        UrdfError::RustyXml(err)
+impl From<std::string::FromUtf8Error> for UrdfError {
+    fn from(err: std::string::FromUtf8Error) -> UrdfError {
+        ErrorKind::Command(err.to_string()).into()
     }
 }
 
-impl<'a> From<&'a str> for UrdfError {
-    fn from(err: &'a str) -> UrdfError {
-        UrdfError::Command(err.to_owned())
-    }
-}
-
-impl From<string::FromUtf8Error> for UrdfError {
-    fn from(err: string::FromUtf8Error) -> UrdfError {
-        UrdfError::Command(err.to_string())
-    }
-}
+// Note: These implementations are intentionally not-exist to prevent dependency
+// updates from becoming breaking changes.
+// impl From<serde_xml_rs::Error> for UrdfError
+// impl From<xml::BuilderError> for UrdfError

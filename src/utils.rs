@@ -25,7 +25,7 @@ where
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
     } else {
-        Err(UrdfError::Command("faild to xacro".to_owned()))
+        Err(ErrorKind::Command("faild to xacro".to_owned()).into())
     }
 }
 
@@ -73,7 +73,7 @@ where
             read_file(&input_path)
         }
     } else {
-        return Err(UrdfError::Command("failed to get extension".to_owned()));
+        Err(ErrorKind::Command("failed to get extension".to_owned()).into())
     }
 }
 
