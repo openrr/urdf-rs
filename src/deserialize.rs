@@ -136,9 +136,7 @@ mod urdf_vec3 {
             )));
         }
         let mut arr = [0.0f64; 3];
-        for i in 0..3 {
-            arr[i] = vec[i];
-        }
+        arr.copy_from_slice(&vec);
         Ok(arr)
     }
 }
@@ -187,9 +185,7 @@ mod urdf_vec4 {
             )));
         }
         let mut arr = [0.0f64; 4];
-        for i in 0..4 {
-            arr[i] = vec[i];
-        }
+        arr.copy_from_slice(&vec);
         Ok(arr)
     }
 }
