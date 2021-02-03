@@ -181,14 +181,20 @@ fn it_works() {
         _ => panic!("geometry error"),
     }
     match robo.links[0].visual[1].geometry {
-        Geometry::Mesh { ref filename, scale } => {
+        Geometry::Mesh {
+            ref filename,
+            scale,
+        } => {
             assert_eq!(filename, "aa.dae");
             assert_eq!(scale, None);
         }
         _ => panic!("geometry error"),
     }
     match robo.links[0].visual[2].geometry {
-        Geometry::Mesh { ref filename, scale } => {
+        Geometry::Mesh {
+            ref filename,
+            scale,
+        } => {
             assert_eq!(filename, "bbb.dae");
             assert!(scale.is_some());
         }
