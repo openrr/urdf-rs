@@ -20,7 +20,7 @@ fn sort_link_joint(string: &str) -> Result<String> {
             }
         };
     }
-    let mut new_elm = e.clone();
+    let mut new_elm = e;
     links.extend(joints);
     links.extend(materials);
     new_elm.children = links;
