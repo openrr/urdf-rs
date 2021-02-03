@@ -120,6 +120,18 @@ fn it_works() {
                         <color rgba="0 1.0 1.0 1.0"/>
                     </material>
                 </visual>
+                <visual>
+                    <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
+                    <geometry>
+                        <mesh filename="aa.dae" />
+                    </geometry>
+                </visual>
+                <visual>
+                    <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
+                    <geometry>
+                        <mesh filename="bbb.dae" scale="2.0 3.0 4.0" />
+                    </geometry>
+                </visual>
                 <collision>
                     <origin xyz="0 0 0" rpy="0 0 0"/>
                     <geometry>
@@ -150,7 +162,7 @@ fn it_works() {
     assert_eq!(robo.name, "robo");
     assert_eq!(robo.links.len(), 3);
     assert_eq!(robo.joints.len(), 2);
-    assert_eq!(robo.links[0].visual.len(), 1);
+    assert_eq!(robo.links[0].visual.len(), 3);
     let xyz = robo.links[0].visual[0].origin.xyz;
     assert_eq!(xyz[0], 0.1);
     assert_eq!(xyz[1], 0.2);
@@ -168,6 +180,21 @@ fn it_works() {
         }
         _ => panic!("geometry error"),
     }
+    match robo.links[0].visual[1].geometry {
+        Geometry::Mesh { ref filename, scale } => {
+            assert_eq!(filename, "aa.dae");
+            assert_eq!(scale, None);
+        }
+        _ => panic!("geometry error"),
+    }
+    match robo.links[0].visual[2].geometry {
+        Geometry::Mesh { ref filename, scale } => {
+            assert_eq!(filename, "bbb.dae");
+            assert!(scale.is_some());
+        }
+        _ => panic!("geometry error"),
+    }
+
     assert_eq!(robo.materials.len(), 1);
 
     assert_eq!(robo.joints[0].name, "shoulder_pitch");
