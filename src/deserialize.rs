@@ -43,7 +43,7 @@ pub enum Geometry {
     },
     Mesh {
         filename: String,
-        #[serde(with = "urdf_option_vec3")]
+        #[serde(with = "urdf_option_vec3", default)]
         scale: Option<[f64; 3]>,
     },
 }
