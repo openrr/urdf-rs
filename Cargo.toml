@@ -17,3 +17,6 @@ RustyXML = "0.3.0"
 serde = { version = "1.0.118", features = ["derive"] }
 serde-xml-rs = "0.4.0"
 thiserror = "1.0.7"
+
+[dev-dependencies]
+assert_approx_eq = "1"

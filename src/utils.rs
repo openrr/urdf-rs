@@ -55,7 +55,7 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
         })
         .to_string()
     } else {
-        let mut relative_path_from_urdf = base_dir.unwrap_or(Path::new("")).to_owned();
+        let mut relative_path_from_urdf = base_dir.unwrap_or_else(|| Path::new("")).to_owned();
         relative_path_from_urdf.push(filename);
         relative_path_from_urdf.to_str().unwrap().to_owned()
     }

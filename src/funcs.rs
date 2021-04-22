@@ -99,6 +99,8 @@ pub fn read_from_string(string: &str) -> Result<Robot> {
 
 #[test]
 fn it_works() {
+    use assert_approx_eq::assert_approx_eq;
+
     let s = r##"
         <robot name="robo">
             <material name="blue">
@@ -164,19 +166,19 @@ fn it_works() {
     assert_eq!(robo.joints.len(), 2);
     assert_eq!(robo.links[0].visual.len(), 3);
     let xyz = robo.links[0].visual[0].origin.xyz;
-    assert_eq!(xyz[0], 0.1);
-    assert_eq!(xyz[1], 0.2);
-    assert_eq!(xyz[2], 0.3);
+    assert_approx_eq!(xyz[0], 0.1);
+    assert_approx_eq!(xyz[1], 0.2);
+    assert_approx_eq!(xyz[2], 0.3);
     let rpy = robo.links[0].visual[0].origin.rpy;
-    assert_eq!(rpy[0], -0.1);
-    assert_eq!(rpy[1], -0.2);
-    assert_eq!(rpy[2], -0.3);
+    assert_approx_eq!(rpy[0], -0.1);
+    assert_approx_eq!(rpy[1], -0.2);
+    assert_approx_eq!(rpy[2], -0.3);
 
     match robo.links[0].visual[0].geometry {
         Geometry::Box { size } => {
-            assert_eq!(size[0], 1.0f64);
-            assert_eq!(size[1], 2.0f64);
-            assert_eq!(size[2], 3.0f64);
+            assert_approx_eq!(size[0], 1.0f64);
+            assert_approx_eq!(size[1], 2.0f64);
+            assert_approx_eq!(size[2], 3.0f64);
         }
         _ => panic!("geometry error"),
     }
@@ -205,12 +207,12 @@ fn it_works() {
 
     assert_eq!(robo.joints[0].name, "shoulder_pitch");
     let xyz = robo.joints[0].axis.xyz;
-    assert_eq!(xyz[0], 0.0f64);
-    assert_eq!(xyz[1], 1.0f64);
-    assert_eq!(xyz[2], -1.0f64);
+    assert_approx_eq!(xyz[0], 0.0f64);
+    assert_approx_eq!(xyz[1], 1.0f64);
+    assert_approx_eq!(xyz[2], -1.0f64);
     let xyz = robo.joints[0].axis.xyz;
     //"0 1 -1"
-    assert_eq!(xyz[0], 0.0);
-    assert_eq!(xyz[1], 1.0);
-    assert_eq!(xyz[2], -1.0);
+    assert_approx_eq!(xyz[0], 0.0);
+    assert_approx_eq!(xyz[1], 1.0);
+    assert_approx_eq!(xyz[2], -1.0);
 }
