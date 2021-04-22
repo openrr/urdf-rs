@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
   RUST_BACKTRACE: 1
 
 defaults:
@@ -25,6 +26,8 @@ jobs:
     - name: Install Rust
       run: rustup update ${{ matrix.rust }} && rustup default ${{ matrix.rust }}
     - run: cargo fmt -- --check
+      if: matrix.rust == 'stable'
+    - run: cargo clippy --all-targets
       if: matrix.rust == 'stable'
     - run: cargo build --verbose
     - run: cargo test --verbose
