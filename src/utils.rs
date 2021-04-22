@@ -2,6 +2,7 @@ use crate::deserialize::Robot;
 use crate::errors::*;
 use crate::funcs::*;
 
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::path::Path;
 use std::process::Command;
@@ -45,9 +46,10 @@ pub fn rospack_find(package: &str) -> Option<String> {
 }
 
 pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new("^package://(\\w+)/").unwrap());
+
     if filename.starts_with("package://") {
-        let re = Regex::new("^package://(\\w+)/").unwrap();
-        re.replace(filename, |ma: &regex::Captures| {
+        RE.replace(filename, |ma: &regex::Captures| {
             match rospack_find(&ma[1]) {
                 Some(found_path) => found_path + "/",
                 None => panic!("failed to find ros package {}", &ma[1]),
