@@ -26,7 +26,7 @@ where
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
     } else {
-        Err(ErrorKind::Command("faild to xacro".to_owned()).into())
+        Err(ErrorKind::Command("failed to xacro".to_owned()).into())
     }
 }
 
