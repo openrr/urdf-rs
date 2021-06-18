@@ -20,6 +20,8 @@
 //! println!("{:?}", joints[0].origin.xyz);
 //! ```
 
+#![warn(missing_debug_implementations, rust_2018_idioms)]
+
 mod errors;
 pub use errors::*;
 

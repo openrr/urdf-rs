@@ -49,7 +49,7 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new("^package://(\\w+)/").unwrap());
 
     if filename.starts_with("package://") {
-        RE.replace(filename, |ma: &regex::Captures| {
+        RE.replace(filename, |ma: &regex::Captures<'_>| {
             match rospack_find(&ma[1]) {
                 Some(found_path) => found_path + "/",
                 None => panic!("failed to find ros package {}", &ma[1]),
