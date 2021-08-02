@@ -17,17 +17,12 @@ defaults:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        rust: [ stable, beta, nightly ]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install Rust
-      run: rustup update ${{ matrix.rust }} && rustup default ${{ matrix.rust }}
-    - run: cargo fmt -- --check
-      if: matrix.rust == 'stable'
-    - run: cargo clippy --all-targets
-      if: matrix.rust == 'stable'
-    - run: cargo build --verbose
-    - run: cargo test --verbose
+      - uses: actions/checkout@v2
+      - name: Install Rust
+        run: rustup update stable
+      - run: cargo fmt -- --check
+      - run: cargo clippy --all-targets
+      - run: cargo build
+      - run: cargo test
