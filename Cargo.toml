@@ -8,7 +8,6 @@ license = "Apache-2.0"
 keywords = ["robotics", "robot", "ros", "urdf"]
 categories = ["data-structures", "parsing"]
 repository = "https://github.com/openrr/urdf-rs"
-documentation = "http://docs.rs/urdf-rs"
 
 # Note: serde is public dependency.
 [dependencies]
