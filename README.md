@@ -1,10 +1,10 @@
-# urdf-rs [![Build Status](https://img.shields.io/github/workflow/status/openrr/urdf-rs/CI/main)](https://github.com/openrr/urdf-rs/actions?query=workflow%3ACI+branch%3Amain)  [![crates.io](https://img.shields.io/crates/v/urdf-rs.svg)](https://crates.io/crates/urdf-rs)
+# urdf-rs
+
+[![Build Status](https://img.shields.io/github/workflow/status/openrr/urdf-rs/CI/main)](https://github.com/openrr/urdf-rs/actions) [![crates.io](https://img.shields.io/crates/v/urdf-rs.svg)](https://crates.io/crates/urdf-rs) [![docs](https://docs.rs/urdf-rs/badge.svg)](https://docs.rs/urdf-rs)
 
 [URDF](http://wiki.ros.org/urdf) parser using [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
 
 Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
-
-[Documentation](https://docs.rs/urdf-rs/)
 
 ## Example
 
@@ -20,7 +20,8 @@ println!("{:?}", joints[0].origin.xyz);
 
 ## Contributors
 
-* Johan Andersson
-* Tom Olsson
-* Nate Kent
-* Wout Schellaert
+<a href="https://github.com/openrr/urdf-rs/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=openrr/urdf-rs" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
