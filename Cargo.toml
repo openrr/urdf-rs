@@ -2,7 +2,7 @@
 name = "urdf-rs"
 version = "0.6.2"
 authors = ["Takashi Ogura <t.ogura@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "URDF parser using serde-xml-rs"
 license = "Apache-2.0"
 keywords = ["robotics", "robot", "ros", "urdf"]
