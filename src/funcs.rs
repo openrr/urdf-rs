@@ -24,7 +24,7 @@ fn sort_link_joint(string: &str) -> Result<String> {
     links.extend(joints);
     links.extend(materials);
     new_elm.children = links;
-    Ok(format!("{}", new_elm))
+    Ok(format!("{new_elm}"))
 }
 
 /// Read urdf file and create Robot instance

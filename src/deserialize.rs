@@ -131,8 +131,7 @@ mod urdf_vec3 {
             .collect::<Vec<_>>();
         if vec.len() != 3 {
             return Err(serde::de::Error::custom(format!(
-                "failed to parse float array in {}",
-                s
+                "failed to parse float array in {s}"
             )));
         }
         let mut arr = [0.0f64; 3];
@@ -160,8 +159,7 @@ mod urdf_option_vec3 {
             Ok(Some(arr))
         } else {
             Err(serde::de::Error::custom(format!(
-                "failed to parse float array in {}",
-                s
+                "failed to parse float array in {s}"
             )))
         }
     }
@@ -180,8 +178,7 @@ mod urdf_vec4 {
             .collect::<Vec<_>>();
         if vec.len() != 4 {
             return Err(serde::de::Error::custom(format!(
-                "failed to parse float array in {}",
-                s
+                "failed to parse float array in {s}"
             )));
         }
         let mut arr = [0.0f64; 4];
