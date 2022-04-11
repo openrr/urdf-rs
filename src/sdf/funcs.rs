@@ -1,5 +1,5 @@
-use crate::deserialize::*;
 use crate::errors::*;
+use crate::sdf::deserialize::*;
 
 use std::path::Path;
 
@@ -32,7 +32,7 @@ fn sort_link_joint(string: &str) -> Result<String> {
 /// # Examples
 ///
 /// ```
-/// let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
+/// let urdf_robo = urdf_rs::sdf::read_file("samples/sample.urdf").unwrap();
 /// let links = urdf_robo.links;
 /// println!("{:?}", links[0].visual[0].origin.xyz);
 /// ```
@@ -88,7 +88,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 ///         </joint>
 ///     </robot>
 ///    "##;
-/// let urdf_robo = urdf_rs::read_from_string(s).unwrap();
+/// let urdf_robo = urdf_rs::sdf::read_from_string(s).unwrap();
 /// println!("{:?}", urdf_robo.links[0].visual[0].origin.xyz);
 /// ```
 

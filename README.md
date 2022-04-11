@@ -11,7 +11,7 @@ Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/u
 You can access urdf elements like below example.
 
 ```rust
-let urdf_robo = urdf_rs::read_file("sample.urdf").unwrap();
+let urdf_robo = urdf_rs::urdf::read_file("samples/sample.urdf").unwrap();
 let links = urdf_robo.links;
 println!("{:?}", links[0].visual[0].origin.xyz);
 let joints = urdf_robo.joints;
