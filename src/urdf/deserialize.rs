@@ -1,9 +1,5 @@
+use crate::common::*;
 use serde::Deserialize;
-
-#[derive(Debug, Deserialize, Default, Clone)]
-pub struct Mass {
-    pub value: f64,
-}
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Inertia {
@@ -27,7 +23,7 @@ pub struct Inertial {
 #[serde(rename_all = "snake_case")]
 pub enum Geometry {
     Box {
-        #[serde(with = "urdf_vec3")]
+        #[serde(with = "ss_vec3")]
         size: [f64; 3],
     },
     Cylinder {
@@ -43,7 +39,7 @@ pub enum Geometry {
     },
     Mesh {
         filename: String,
-        #[serde(with = "urdf_option_vec3", default)]
+        #[serde(with = "ss_option_vec3", default)]
         scale: Option<[f64; 3]>,
     },
 }
@@ -57,28 +53,9 @@ impl Default for Geometry {
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
-pub struct Color {
-    #[serde(with = "urdf_vec4")]
-    pub rgba: [f64; 4],
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct Texture {
-    pub filename: String,
-}
-
-impl Default for Texture {
-    fn default() -> Texture {
-        Texture {
-            filename: "".to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Material {
     pub name: String,
-    pub color: Option<Color>,
+    pub color: Option<ColorRGBA>,
     pub texture: Option<Texture>,
 }
 
@@ -112,84 +89,9 @@ pub struct Link {
     pub collision: Vec<Collision>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct Vec3 {
-    #[serde(with = "urdf_vec3")]
-    pub data: [f64; 3],
-}
-
-mod urdf_vec3 {
-    use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<'a, D>(deserializer: D) -> Result<[f64; 3], D::Error>
-    where
-        D: Deserializer<'a>,
-    {
-        let s = String::deserialize(deserializer)?;
-        let vec = s
-            .split(' ')
-            .filter_map(|x| x.parse::<f64>().ok())
-            .collect::<Vec<_>>();
-        if vec.len() != 3 {
-            return Err(serde::de::Error::custom(format!(
-                "failed to parse float array in {s}"
-            )));
-        }
-        let mut arr = [0.0f64; 3];
-        arr.copy_from_slice(&vec);
-        Ok(arr)
-    }
-}
-
-mod urdf_option_vec3 {
-    use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<'a, D>(deserializer: D) -> Result<Option<[f64; 3]>, D::Error>
-    where
-        D: Deserializer<'a>,
-    {
-        let s = String::deserialize(deserializer)?;
-        let vec = s
-            .split(' ')
-            .filter_map(|x| x.parse::<f64>().ok())
-            .collect::<Vec<_>>();
-        if vec.is_empty() {
-            Ok(None)
-        } else if vec.len() == 3 {
-            let mut arr = [0.0; 3];
-            arr.copy_from_slice(&vec);
-            Ok(Some(arr))
-        } else {
-            Err(serde::de::Error::custom(format!(
-                "failed to parse float array in {s}"
-            )))
-        }
-    }
-}
-
-mod urdf_vec4 {
-    use serde::{self, Deserialize, Deserializer};
-    pub fn deserialize<'a, D>(deserializer: D) -> Result<[f64; 4], D::Error>
-    where
-        D: Deserializer<'a>,
-    {
-        let s = String::deserialize(deserializer)?;
-        let vec = s
-            .split(' ')
-            .filter_map(|x| x.parse::<f64>().ok())
-            .collect::<Vec<_>>();
-        if vec.len() != 4 {
-            return Err(serde::de::Error::custom(format!(
-                "failed to parse float array in {s}"
-            )));
-        }
-        let mut arr = [0.0f64; 4];
-        arr.copy_from_slice(&vec);
-        Ok(arr)
-    }
-}
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct Axis {
-    #[serde(with = "urdf_vec3")]
+    #[serde(with = "ss_vec3")]
     pub xyz: [f64; 3],
 }
 
@@ -203,10 +105,10 @@ impl Default for Axis {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Pose {
-    #[serde(with = "urdf_vec3")]
+    #[serde(with = "ss_vec3")]
     #[serde(default = "default_zero3")]
     pub xyz: [f64; 3],
-    #[serde(with = "urdf_vec3")]
+    #[serde(with = "ss_vec3")]
     #[serde(default = "default_zero3")]
     pub rpy: [f64; 3],
 }

@@ -1,6 +1,9 @@
-use crate::deserialize::Robot;
+//! ROS-specific functions that make use of `rosrun` and `rospack` as
+//! subprocesses.
+
 use crate::errors::*;
-use crate::funcs::*;
+use crate::urdf::Robot;
+use crate::urdf::{read_file, read_from_string};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -91,6 +94,6 @@ fn it_works() {
         expand_package_path("/home/aaa.obj", Some(Path::new(""))),
         "/home/aaa.obj"
     );
-    assert!(read_urdf_or_xacro("sample.urdf").is_ok());
+    assert!(read_urdf_or_xacro("samples/sample.urdf").is_ok());
     assert!(read_urdf_or_xacro("sample_urdf").is_err());
 }
