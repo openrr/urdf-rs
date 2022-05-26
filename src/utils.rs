@@ -26,7 +26,12 @@ where
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
     } else {
-        Err(ErrorKind::Command("failed to xacro".to_owned()).into())
+        Err(ErrorKind::Command {
+            msg: "failed to xacro".to_owned(),
+            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        }
+        .into())
     }
 }
 
@@ -75,7 +80,7 @@ where
             read_file(&input_path)
         }
     } else {
-        Err(ErrorKind::Command("failed to get extension".to_owned()).into())
+        Err(ErrorKind::Other("failed to get extension".to_owned()).into())
     }
 }
 
