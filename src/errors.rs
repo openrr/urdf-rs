@@ -20,8 +20,14 @@ pub(crate) enum ErrorKind {
     Xml(#[from] serde_xml_rs::Error),
     #[error(transparent)]
     RustyXml(#[from] xml::BuilderError),
-    #[error("command error {}", .0)]
-    Command(String),
+    #[error("command error {}\n--- stdout\n{}\n--- stderr\n{}", .msg, .stdout, .stderr)]
+    Command {
+        msg: String,
+        stdout: String,
+        stderr: String,
+    },
+    #[error("{}", .0)]
+    Other(String),
 }
 
 impl UrdfError {
@@ -38,13 +44,13 @@ impl From<std::io::Error> for UrdfError {
 
 impl From<&str> for UrdfError {
     fn from(err: &str) -> UrdfError {
-        ErrorKind::Command(err.to_owned()).into()
+        ErrorKind::Other(err.to_owned()).into()
     }
 }
 
 impl From<std::string::FromUtf8Error> for UrdfError {
     fn from(err: std::string::FromUtf8Error) -> UrdfError {
-        ErrorKind::Command(err.to_string()).into()
+        ErrorKind::Other(err.to_string()).into()
     }
 }
 
