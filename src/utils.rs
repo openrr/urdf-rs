@@ -12,15 +12,8 @@ where
     P: AsRef<Path>,
 {
     let output = Command::new("rosrun")
-        .args(&[
-            "xacro",
-            "xacro",
-            "--inorder",
-            filename
-                .as_ref()
-                .to_str()
-                .ok_or("failed to get str fro filename")?,
-        ])
+        .args(&["xacro", "xacro", "--inorder"])
+        .arg(filename.as_ref())
         .output()
         .expect("failed to execute xacro. install by apt-get install ros-*-xacro");
     if output.status.success() {
