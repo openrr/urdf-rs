@@ -58,10 +58,12 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
         filename.to_owned()
     } else if let Some(abs_path) = filename.strip_prefix("file://") {
         abs_path.to_owned()
-    } else {
-        let mut relative_path_from_urdf = base_dir.unwrap_or_else(|| Path::new("")).to_owned();
+    } else if let Some(base_dir) = base_dir {
+        let mut relative_path_from_urdf = base_dir.to_owned();
         relative_path_from_urdf.push(filename);
         relative_path_from_urdf.to_str().unwrap().to_owned()
+    } else {
+        filename.to_owned()
     }
 }
 
@@ -85,6 +87,10 @@ where
 fn it_works() {
     // test only for not packages
     assert_eq!(expand_package_path("home/aaa", None), "home/aaa");
+    assert_eq!(
+        expand_package_path("home/aaa.obj", Some(Path::new(""))),
+        "home/aaa.obj"
+    );
     assert_eq!(
         expand_package_path("home/aaa.obj", Some(Path::new("/var"))),
         "/var/home/aaa.obj"
