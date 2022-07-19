@@ -54,6 +54,8 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
             }
         })
         .to_string()
+    } else if filename.starts_with("https://") || filename.starts_with("http://") {
+        filename.to_owned()
     } else if let Some(abs_path) = filename.strip_prefix("file://") {
         abs_path.to_owned()
     } else {
@@ -94,6 +96,14 @@ fn it_works() {
     assert_eq!(
         expand_package_path("file:///home/aaa.obj", Some(Path::new("/var"))),
         "/home/aaa.obj"
+    );
+    assert_eq!(
+        expand_package_path("http://aaa.obj", Some(Path::new("/var"))),
+        "http://aaa.obj"
+    );
+    assert_eq!(
+        expand_package_path("https://aaa.obj", Some(Path::new("/var"))),
+        "https://aaa.obj"
     );
     assert!(read_urdf_or_xacro("sample.urdf").is_ok());
     assert!(read_urdf_or_xacro("sample_urdf").is_err());
