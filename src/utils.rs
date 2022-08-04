@@ -15,6 +15,7 @@ where
         .args(&["xacro", "xacro", "--inorder"])
         .arg(filename.as_ref())
         .output()
+        .or_else(|_| Command::new("xacro").arg(filename.as_ref()).output())
         .expect("failed to execute xacro. install by apt-get install ros-*-xacro");
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
