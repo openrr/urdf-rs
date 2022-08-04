@@ -1,6 +1,6 @@
 [package]
 name = "urdf-rs"
-version = "0.6.4"
+version = "0.6.5"
 authors = ["Takashi Ogura <t.ogura@gmail.com>"]
 edition = "2021"
 description = "URDF parser using serde-xml-rs"
