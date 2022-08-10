@@ -34,6 +34,8 @@ pub fn rospack_find(package: &str) -> Option<String> {
         .arg("find")
         .arg(package)
         .output()
+        // support ROS2
+        .or_else(|_| Command::new("ros2").args(&["pkg", "prefix", "--share"]).arg(package).output())
         .expect("rospack find failed");
     if output.status.success() {
         String::from_utf8(output.stdout)
