@@ -221,6 +221,15 @@ fn it_works() {
         _ => panic!("geometry error"),
     }
 
+    assert_eq!(robo.links[0].collision.len(), 1);
+    match robo.links[0].collision[0].geometry {
+        Geometry::Cylinder { radius, length } => {
+            assert_approx_eq!(radius, 1.0);
+            assert_approx_eq!(length, 0.5);
+        }
+        _ => panic!("geometry error"),
+    }
+
     assert_eq!(robo.materials.len(), 1);
 
     assert_eq!(robo.joints[0].name, "shoulder_pitch");
