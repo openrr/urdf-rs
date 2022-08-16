@@ -10,21 +10,39 @@ fn sort_link_joint(string: &str) -> Result<String> {
     let mut joints = Vec::new();
     let mut materials = Vec::new();
     for c in &e.children {
-        if let xml::Xml::ElementNode(ref xml_elm) = *c {
+        if let xml::Xml::ElementNode(xml_elm) = c {
             if xml_elm.name == "link" {
-                links.push(xml::Xml::ElementNode(xml_elm.clone()));
+                links.push(sort_visual_collision(xml_elm));
             } else if xml_elm.name == "joint" {
                 joints.push(xml::Xml::ElementNode(xml_elm.clone()));
             } else if xml_elm.name == "material" {
                 materials.push(xml::Xml::ElementNode(xml_elm.clone()));
             }
-        };
+        }
     }
     let mut new_elm = e;
     links.extend(joints);
     links.extend(materials);
     new_elm.children = links;
     Ok(format!("{new_elm}"))
+}
+
+fn sort_visual_collision(elm: &xml::Element) -> xml::Xml {
+    let mut visuals = Vec::new();
+    let mut collisions = Vec::new();
+    for c in &elm.children {
+        if let xml::Xml::ElementNode(xml_elm) = c {
+            if xml_elm.name == "visual" {
+                visuals.push(xml::Xml::ElementNode(xml_elm.clone()));
+            } else if xml_elm.name == "collision" {
+                collisions.push(xml::Xml::ElementNode(xml_elm.clone()));
+            }
+        }
+    }
+    let mut new_elm = elm.clone();
+    visuals.extend(collisions);
+    new_elm.children = visuals;
+    xml::Xml::ElementNode(new_elm)
 }
 
 /// Read urdf file and create Robot instance
@@ -128,18 +146,18 @@ fn it_works() {
                         <mesh filename="aa.dae" />
                     </geometry>
                 </visual>
-                <visual>
-                    <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
-                    <geometry>
-                        <mesh filename="bbb.dae" scale="2.0 3.0 4.0" />
-                    </geometry>
-                </visual>
                 <collision>
                     <origin xyz="0 0 0" rpy="0 0 0"/>
                     <geometry>
                         <cylinder radius="1" length="0.5"/>
                     </geometry>
                 </collision>
+                <visual>
+                    <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
+                    <geometry>
+                        <mesh filename="bbb.dae" scale="2.0 3.0 4.0" />
+                    </geometry>
+                </visual>
             </link>
             <joint name="shoulder_pitch" type="revolute">
                 <origin xyz="0.0 0.0 0.1" />
