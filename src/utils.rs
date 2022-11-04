@@ -12,7 +12,7 @@ where
     P: AsRef<Path>,
 {
     let output = Command::new("rosrun")
-        .args(&["xacro", "xacro", "--inorder"])
+        .args(["xacro", "xacro", "--inorder"])
         .arg(filename.as_ref())
         .output()
         .or_else(|_| Command::new("xacro").arg(filename.as_ref()).output())
@@ -37,7 +37,7 @@ pub fn rospack_find(package: &str) -> Option<String> {
         // support ROS2
         .or_else(|_| {
             Command::new("ros2")
-                .args(&["pkg", "prefix", "--share"])
+                .args(["pkg", "prefix", "--share"])
                 .arg(package)
                 .output()
         })
