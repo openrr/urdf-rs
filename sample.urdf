@@ -1,4 +1,4 @@
-<robot name="robo">
+<robot name="robot">
   <link name="root">
     <inertial>
       <origin xyz="0 0 0.5" rpy="0 0 0"/>
