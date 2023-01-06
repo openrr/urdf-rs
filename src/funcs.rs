@@ -32,7 +32,7 @@ fn sort_visual_collision(elm: &xml::Element) -> xml::Xml {
     let mut collisions = Vec::new();
     for c in &elm.children {
         if let xml::Xml::ElementNode(xml_elm) = c {
-            if xml_elm.name == "visual" {
+            if xml_elm.name == "visual" || xml_elm.name == "inertial" {
                 visuals.push(xml::Xml::ElementNode(xml_elm.clone()));
             } else if xml_elm.name == "collision" {
                 collisions.push(xml::Xml::ElementNode(xml_elm.clone()));
@@ -183,6 +183,7 @@ fn it_works() {
     assert_eq!(robot.links.len(), 3);
     assert_eq!(robot.joints.len(), 2);
     assert_eq!(robot.links[0].visual.len(), 3);
+    assert_eq!(robot.links[0].inertial.mass.value, 1.0);
     let xyz = robot.links[0].visual[0].origin.xyz;
     assert_approx_eq!(xyz[0], 0.1);
     assert_approx_eq!(xyz[1], 0.2);
