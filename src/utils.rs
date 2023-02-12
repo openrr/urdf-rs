@@ -39,7 +39,7 @@ pub fn convert_xacro_to_urdf<P>(filename: P) -> Result<String>
 where
     P: AsRef<Path>,
 {
-    convert_xacro_to_urdf_with_args(filename, &Vec::new())
+    convert_xacro_to_urdf_with_args(filename, &[])
 }
 
 pub fn rospack_find(package: &str) -> Option<String> {
@@ -108,7 +108,7 @@ pub fn read_urdf_or_xacro<P>(input_path: P) -> Result<Robot>
 where
     P: AsRef<Path>,
 {
-    read_urdf_or_xacro_with_args(input_path, &Vec::new())
+    read_urdf_or_xacro_with_args(input_path, &[])
 }
 
 #[test]
