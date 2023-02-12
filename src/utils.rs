@@ -7,10 +7,7 @@ use regex::Regex;
 use std::path::Path;
 use std::process::Command;
 
-pub fn convert_xacro_to_urdf_with_args<P>(
-    filename: P,
-    args: &Vec<(String, String)>,
-) -> Result<String>
+pub fn convert_xacro_to_urdf_with_args<P>(filename: P, args: &[(String, String)]) -> Result<String>
 where
     P: AsRef<Path>,
 {
@@ -91,7 +88,7 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
     }
 }
 
-pub fn read_urdf_or_xacro_with_args<P>(input_path: P, args: &Vec<(String, String)>) -> Result<Robot>
+pub fn read_urdf_or_xacro_with_args<P>(input_path: P, args: &[(String, String)]) -> Result<Robot>
 where
     P: AsRef<Path>,
 {
