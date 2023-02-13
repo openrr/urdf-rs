@@ -7,15 +7,21 @@ use regex::Regex;
 use std::path::Path;
 use std::process::Command;
 
-pub fn convert_xacro_to_urdf<P>(filename: P) -> Result<String>
+pub fn convert_xacro_to_urdf_with_args<P>(filename: P, args: &[(String, String)]) -> Result<String>
 where
     P: AsRef<Path>,
 {
     let output = Command::new("rosrun")
         .args(["xacro", "xacro", "--inorder"])
         .arg(filename.as_ref())
+        .args(args.iter().map(|(k, v)| format!("{}:={}", k, v)))
         .output()
-        .or_else(|_| Command::new("xacro").arg(filename.as_ref()).output())
+        .or_else(|_| {
+            Command::new("xacro")
+                .arg(filename.as_ref())
+                .args(args.iter().map(|(k, v)| format!("{}:={}", k, v)))
+                .output()
+        })
         .expect("failed to execute xacro. install by apt-get install ros-*-xacro");
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
@@ -27,6 +33,13 @@ where
         }
         .into())
     }
+}
+
+pub fn convert_xacro_to_urdf<P>(filename: P) -> Result<String>
+where
+    P: AsRef<Path>,
+{
+    convert_xacro_to_urdf_with_args(filename, &[])
 }
 
 pub fn rospack_find(package: &str) -> Option<String> {
@@ -75,13 +88,13 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
     }
 }
 
-pub fn read_urdf_or_xacro<P>(input_path: P) -> Result<Robot>
+pub fn read_urdf_or_xacro_with_args<P>(input_path: P, args: &[(String, String)]) -> Result<Robot>
 where
     P: AsRef<Path>,
 {
     if let Some(ext) = input_path.as_ref().extension() {
         if ext == "xacro" {
-            let urdf_utf = convert_xacro_to_urdf(input_path.as_ref())?;
+            let urdf_utf = convert_xacro_to_urdf_with_args(input_path.as_ref(), args)?;
             read_from_string(&urdf_utf)
         } else {
             read_file(&input_path)
@@ -89,6 +102,13 @@ where
     } else {
         Err(ErrorKind::Other("failed to get extension".to_owned()).into())
     }
+}
+
+pub fn read_urdf_or_xacro<P>(input_path: P) -> Result<Robot>
+where
+    P: AsRef<Path>,
+{
+    read_urdf_or_xacro_with_args(input_path, &[])
 }
 
 #[test]
