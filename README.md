@@ -1,6 +1,6 @@
 # urdf-rs
 
-[![Build Status](https://img.shields.io/github/workflow/status/openrr/urdf-rs/CI/main)](https://github.com/openrr/urdf-rs/actions) [![crates.io](https://img.shields.io/crates/v/urdf-rs.svg)](https://crates.io/crates/urdf-rs) [![docs](https://docs.rs/urdf-rs/badge.svg)](https://docs.rs/urdf-rs)
+[![Build Status](https://img.shields.io/github/workflow/status/openrr/urdf-rs/CI/main)](https://github.com/openrr/urdf-rs/actions) [![crates.io](https://img.shields.io/crates/v/urdf-rs.svg)](https://crates.io/crates/urdf-rs) [![docs](https://docs.rs/urdf-rs/badge.svg)](https://docs.rs/urdf-rs) [![discord](https://dcbadge.vercel.app/api/server/8DAFFKc88B?style=flat)](https://discord.gg/8DAFFKc88B)
 
 [URDF](http://wiki.ros.org/urdf) parser using [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
 
@@ -25,3 +25,7 @@ println!("{:?}", joints[0].origin.xyz);
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
+
+## `OpenRR` Community
+
+[Here](https://discord.gg/8DAFFKc88B) is a discord server for `OpenRR` users and developers.
