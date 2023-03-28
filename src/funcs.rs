@@ -116,10 +116,10 @@ pub fn read_from_string(string: &str) -> Result<Robot> {
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
-    let conf = yaserde::ser::Config{
+    let conf = yaserde::ser::Config {
         perform_indent: true,
         write_document_declaration: false,
-        indent_string: None
+        indent_string: None,
     };
     yaserde::ser::to_string_with_config(robot, &conf).map_err(UrdfError::new)
 }
@@ -127,7 +127,7 @@ pub fn write_to_string(robot: &Robot) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use crate::{read_from_string, write_to_string};
-    use crate::{BoxGeometry, CylinderGeometry, MeshGeometry, Geometry, Robot};
+    use crate::{BoxGeometry, CylinderGeometry, Geometry, MeshGeometry, Robot};
     use assert_approx_eq::assert_approx_eq;
 
     fn check_robot(robot: &Robot) {
@@ -146,7 +146,7 @@ mod tests {
         assert_approx_eq!(rpy[2], -0.3);
 
         match (&robot.links[0].visual[0].geometry).into() {
-            Geometry::Box(BoxGeometry{size}) => {
+            Geometry::Box(BoxGeometry { size }) => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
                 assert_approx_eq!(size[2], 3.0f64);
