@@ -1,107 +1,172 @@
-use serde::de::Visitor;
-use serde::{Deserialize, Serialize};
+use yaserde::{YaSerialize, YaDeserialize, Visitor};
+use yaserde::xml::namespace::Namespace;
+use yaserde::ser::Serializer;
+use yaserde::xml::attribute::OwnedAttribute;
+use yaserde::xml;
+use yaserde_derive::{YaSerialize, YaDeserialize};
+
+use std::io::{Read, Write};
 
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Mass {
+    #[yaserde(attribute)]
     pub value: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Inertia {
+    #[yaserde(attribute)]
     pub ixx: f64,
+    #[yaserde(attribute)]
     pub ixy: f64,
+    #[yaserde(attribute)]
     pub ixz: f64,
+    #[yaserde(attribute)]
     pub iyy: f64,
+    #[yaserde(attribute)]
     pub iyz: f64,
+    #[yaserde(attribute)]
     pub izz: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Inertial {
-    #[serde(default)]
     pub origin: Pose,
     pub mass: Mass,
     pub inertia: Inertia,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum Geometry {
-    Box {
-        size: Vec3,
-    },
-    Cylinder {
-        radius: f64,
-        length: f64,
-    },
-    Capsule {
-        radius: f64,
-        length: f64,
-    },
-    Sphere {
-        radius: f64,
-    },
-    Mesh {
-        filename: String,
-        #[serde(default)]
-        scale: Option<Vec3>,
-    },
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
+pub struct BoxGeometry {
+    #[yaserde(attribute)]
+    pub size: Vec3,
 }
 
-impl Default for Geometry {
-    fn default() -> Geometry {
-        Geometry::Box {
-            size: Vec3::default(),
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
+pub struct CylinderGeometry {
+    #[yaserde(attribute)]
+    pub radius: f64,
+    #[yaserde(attribute)]
+    pub length: f64,
+}
+
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
+pub struct CapsuleGeometry {
+    #[yaserde(attribute)]
+    pub radius: f64,
+    #[yaserde(attribute)]
+    pub length: f64,
+}
+
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
+pub struct SphereGeometry {
+    #[yaserde(attribute)]
+    pub radius: f64,
+}
+
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
+pub struct MeshGeometry {
+    #[yaserde(attribute)]
+    pub filename: String,
+    #[yaserde(attribute)]
+    pub scale: Option<Vec3>,
+}
+
+pub enum Geometry {
+    Box(BoxGeometry),
+    Cylinder(CylinderGeometry),
+    Capsule(CapsuleGeometry),
+    Sphere(SphereGeometry),
+    Mesh(MeshGeometry),
+}
+
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
+pub struct GeometrySerde {
+    #[yaserde(rename = "box")]
+    pub box_geometry: Option<BoxGeometry>,
+    #[yaserde(rename = "cylinder")]
+    pub cylinder: Option<CylinderGeometry>,
+    #[yaserde(rename = "capsule")]
+    pub capsule: Option<CapsuleGeometry>,
+    #[yaserde(rename = "sphere")]
+    pub sphere: Option<SphereGeometry>,
+    #[yaserde(rename = "mesh")]
+    pub mesh: Option<MeshGeometry>,
+}
+
+impl From<&GeometrySerde> for Geometry {
+    fn from(geom: &GeometrySerde) -> Geometry {
+        if let Some(b) = &geom.box_geometry {
+            Geometry::Box(b.clone())
+        } else if let Some(c) = &geom.cylinder {
+            Geometry::Cylinder(c.clone())
+        } else if let Some(c) = &geom.capsule {
+            Geometry::Capsule(c.clone())
+        } else if let Some(s) = &geom.sphere {
+            Geometry::Sphere(s.clone())
+        } else if let Some(m) = &geom.mesh {
+            Geometry::Mesh(m.clone())
+        } else {
+            panic!("Invalid geometry serde structure");
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+impl Default for GeometrySerde {
+    fn default() -> Self {
+        Self {
+            box_geometry: Some(BoxGeometry{size: Vec3::default()}),
+            cylinder: None,
+            capsule: None,
+            sphere: None,
+            mesh: None,
+        }
+    }
+}
+
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Color {
     pub rgba: Vec4,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Texture {
     pub filename: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Material {
+    #[yaserde(attribute)]
     pub name: String,
     pub color: Option<Color>,
     pub texture: Option<Texture>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Visual {
     pub name: Option<String>,
-    #[serde(default)]
     pub origin: Pose,
-    pub geometry: Geometry,
+    pub geometry: GeometrySerde,
     pub material: Option<Material>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Collision {
     pub name: Option<String>,
-    #[serde(default)]
     pub origin: Pose,
-    pub geometry: Geometry,
+    pub geometry: GeometrySerde,
 }
 
 /// Urdf Link element
 /// See <http://wiki.ros.org/urdf/XML/link> for more detail.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
 pub struct Link {
+    #[yaserde(attribute)]
     pub name: String,
-    #[serde(default)]
     pub inertial: Inertial,
-    #[serde(default)]
     pub visual: Vec<Visual>,
-    #[serde(default)]
     pub collision: Vec<Collision>,
 }
 
@@ -122,50 +187,49 @@ impl DerefMut for Vec3 {
     }
 }
 
-impl Serialize for Vec3 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
+impl YaSerialize for Vec3 {
+    fn serialize<W: Write>(&self, serializer: &mut yaserde::ser::Serializer<W>) -> Result<(), String>
     {
-        serializer.serialize_str(&format!("{} {} {}", self.0[0], self.0[1], self.0[2]))
-    }
-}
-
-impl<'de> Deserialize<'de> for Vec3 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_str(Vec3Visitor)
-    }
-}
-
-struct Vec3Visitor;
-impl<'de> Visitor<'de> for Vec3Visitor {
-    type Value = Vec3;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a string containing three floating point values separated by spaces")
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        let split_results: Vec<_> = v
-            .split_whitespace()
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
-        if split_results.len() != 3 {
-            return Err(E::custom(format!(
-                "Wrong vector element count, expected 3 found {} for [{}]",
-                split_results.len(),
-                v
-            )));
+        // TODO(luca) cleanup this
+        println!("Serializing {:?}", self);
+        match serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {}", self.0[0], self.0[1], self.0[2]))) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e.to_string()),
         }
-        let mut res = [0.0f64; 3];
-        res.copy_from_slice(&split_results);
-        return Ok(Vec3(res));
+    }
+
+    // TODO(luca) check this implementation
+    fn serialize_attributes(
+        &self, 
+        attributes: Vec<OwnedAttribute>, 
+        namespace: Namespace
+    ) -> Result<(Vec<OwnedAttribute>, Namespace), String> {
+        Ok((attributes, namespace))
+    }
+}
+
+impl YaDeserialize for Vec3 {
+    fn deserialize<R: Read>(deserializer: &mut yaserde::de::Deserializer<R>) -> Result<Self, String>
+    {
+        deserializer.next_event();
+        if let Ok(xml::reader::XmlEvent::Characters(v)) = deserializer.peek() {
+            let split_results: Vec<_> = v
+                .split_whitespace()
+                .filter_map(|s| s.parse::<f64>().ok())
+                .collect();
+            if split_results.len() != 3 {
+                return Err(format!(
+                    "Wrong vector element count, expected 3 found {} for [{}]",
+                    split_results.len(),
+                    v
+                ));
+            }
+            let mut res = [0.0f64; 3];
+            res.copy_from_slice(&split_results);
+            return Ok(Vec3(res));
+        } else {
+            return Err("String of elements not found while parsing Vec3".to_string());
+        }
     }
 }
 
@@ -186,154 +250,144 @@ impl DerefMut for Vec4 {
     }
 }
 
-impl Serialize for Vec4 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
+impl YaSerialize for Vec4 {
+    fn serialize<W: Write>(&self, serializer: &mut yaserde::ser::Serializer<W>) -> Result<(), String>
     {
-        serializer.serialize_str(&format!(
-            "{} {} {} {}",
-            self.0[0], self.0[1], self.0[2], self.0[3]
-        ))
-    }
-}
-
-impl<'de> Deserialize<'de> for Vec4 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_str(Vec4Visitor)
-    }
-}
-
-struct Vec4Visitor;
-impl<'de> Visitor<'de> for Vec4Visitor {
-    type Value = Vec4;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a string containing four floating point values separated by spaces")
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        let split_results: Vec<_> = v
-            .split_whitespace()
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
-        if split_results.len() != 4 {
-            return Err(E::custom(format!(
-                "Wrong vector element count, expected 4 found {} for [{}]",
-                split_results.len(),
-                v
-            )));
+        // TODO(luca) cleanup this
+        match serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {} {}", self.0[0], self.0[1], self.0[2], self.0[3]))) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e.to_string()),
         }
-        let mut res = [0.0f64; 4];
-        res.copy_from_slice(&split_results);
-        return Ok(Vec4(res));
+    }
+
+    // TODO(luca) check this implementation
+    fn serialize_attributes(
+        &self, 
+        attributes: Vec<OwnedAttribute>, 
+        namespace: Namespace
+    ) -> Result<(Vec<OwnedAttribute>, Namespace), String> {
+        Ok((attributes, namespace))
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+impl YaDeserialize for Vec4 {
+    fn deserialize<R: Read>(deserializer: &mut yaserde::de::Deserializer<R>) -> Result<Self, String>
+    {
+        deserializer.next_event();
+        if let xml::reader::XmlEvent::Characters(v) = deserializer.peek()? {
+            let split_results: Vec<_> = v
+                .split_whitespace()
+                .filter_map(|s| s.parse::<f64>().ok())
+                .collect();
+            if split_results.len() != 4 {
+                return Err(format!(
+                    "Wrong vector element count, expected 4 found {} for [{}]",
+                    split_results.len(),
+                    v
+                ));
+            }
+            let mut res = [0.0f64; 4];
+            res.copy_from_slice(&split_results);
+            return Ok(Vec4(res));
+        } else {
+            return Err("String of elements not found while parsing Vec3".to_string());
+        }
+    }
+}
+
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Axis {
+    #[yaserde(attribute)]
     pub xyz: Vec3,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[derive(Debug, Default, YaDeserialize, YaSerialize, Clone)]
 pub struct Pose {
-    #[serde(default)]
+    #[yaserde(attribute)]
     pub xyz: Vec3,
-    #[serde(default)]
+    #[yaserde(attribute)]
     pub rpy: Vec3,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Default, YaDeserialize, YaSerialize, Clone)]
 pub struct LinkName {
+    #[yaserde(attribute)]
     pub link: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+// TODO(luca) see if we can avoid deriving default
+#[derive(Debug, Default, YaDeserialize, YaSerialize, Clone, PartialEq, Eq)]
+#[yaserde(rename_all = "snake_case")]
 pub enum JointType {
     Revolute,
     Continuous,
     Prismatic,
+    #[default]
     Fixed,
     Floating,
     Planar,
     Spherical,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct JointLimit {
-    #[serde(default)]
     pub lower: f64,
-    #[serde(default)]
     pub upper: f64,
     pub effort: f64,
     pub velocity: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Mimic {
     pub joint: String,
     pub multiplier: Option<f64>,
     pub offset: Option<f64>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct SafetyController {
-    #[serde(default)]
     pub soft_lower_limit: f64,
-    #[serde(default)]
     pub soft_upper_limit: f64,
-    #[serde(default)]
     pub k_position: f64,
     pub k_velocity: f64,
 }
 
 /// Urdf Joint element
 /// See <http://wiki.ros.org/urdf/XML/joint> for more detail.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
 pub struct Joint {
+    #[yaserde(attribute)]
     pub name: String,
-    #[serde(rename = "type")]
+    #[yaserde(rename = "type")]
     pub joint_type: JointType,
-    #[serde(default)]
     pub origin: Pose,
     pub parent: LinkName,
     pub child: LinkName,
-    #[serde(default)]
     pub axis: Axis,
-    #[serde(default)]
     pub limit: JointLimit,
     pub dynamics: Option<Dynamics>,
     pub mimic: Option<Mimic>,
     pub safety_controller: Option<SafetyController>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Dynamics {
-    #[serde(default)]
     pub damping: f64,
-    #[serde(default)]
     pub friction: f64,
 }
 
 /// Top level struct to access urdf.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
 pub struct Robot {
-    #[serde(default)]
+    #[yaserde(attribute)]
     pub name: String,
 
-    #[serde(rename = "link", default)]
+    #[yaserde(rename = "link")]
     pub links: Vec<Link>,
 
-    #[serde(rename = "joint", default)]
+    #[yaserde(rename = "joint")]
     pub joints: Vec<Joint>,
 
-    #[serde(rename = "material", default)]
+    #[yaserde(rename = "material")]
     pub materials: Vec<Material>,
 }
