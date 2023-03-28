@@ -3,48 +3,6 @@ use crate::errors::*;
 
 use std::path::Path;
 
-/// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
-fn sort_link_joint(string: &str) -> Result<String> {
-    let e: xml::Element = string.parse().map_err(UrdfError::new)?;
-    let mut links = Vec::new();
-    let mut joints = Vec::new();
-    let mut materials = Vec::new();
-    for c in &e.children {
-        if let xml::Xml::ElementNode(xml_elm) = c {
-            if xml_elm.name == "link" {
-                links.push(sort_visual_collision(xml_elm));
-            } else if xml_elm.name == "joint" {
-                joints.push(xml::Xml::ElementNode(xml_elm.clone()));
-            } else if xml_elm.name == "material" {
-                materials.push(xml::Xml::ElementNode(xml_elm.clone()));
-            }
-        }
-    }
-    let mut new_elm = e;
-    links.extend(joints);
-    links.extend(materials);
-    new_elm.children = links;
-    Ok(format!("{new_elm}"))
-}
-
-fn sort_visual_collision(elm: &xml::Element) -> xml::Xml {
-    let mut visuals = Vec::new();
-    let mut collisions = Vec::new();
-    for c in &elm.children {
-        if let xml::Xml::ElementNode(xml_elm) = c {
-            if xml_elm.name == "visual" || xml_elm.name == "inertial" {
-                visuals.push(xml::Xml::ElementNode(xml_elm.clone()));
-            } else if xml_elm.name == "collision" {
-                collisions.push(xml::Xml::ElementNode(xml_elm.clone()));
-            }
-        }
-    }
-    let mut new_elm = elm.clone();
-    visuals.extend(collisions);
-    new_elm.children = visuals;
-    xml::Xml::ElementNode(new_elm)
-}
-
 /// Read urdf file and create Robot instance
 ///
 /// # Examples
@@ -111,8 +69,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 /// ```
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
-    let sorted_string = sort_link_joint(string)?;
-    yaserde::de::from_str(&sorted_string).map_err(UrdfError::new)
+    yaserde::de::from_str(&string).map_err(UrdfError::new)
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
