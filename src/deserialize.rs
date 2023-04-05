@@ -38,8 +38,6 @@ pub struct Inertial {
     pub inertia: Inertia,
 }
 
-// TODO(anyone) Derive YaSerialize and YaSerialize and remove custom impl once upstream bug is fixed
-// https://github.com/media-io/yaserde/issues/129
 #[derive(Debug, Clone)]
 pub enum Geometry {
     Box {
@@ -70,6 +68,8 @@ impl Default for Geometry {
     }
 }
 
+// TODO(anyone) Derive YaSerialize and YaSerialize and remove custom impl once upstream bug is fixed
+// https://github.com/media-io/yaserde/issues/129
 impl YaSerialize for Geometry {
     fn serialize<W: Write>(
         &self,
@@ -147,6 +147,25 @@ impl YaSerialize for Geometry {
     }
 }
 
+impl Vec3 {
+    fn from_string(v: &String) -> Result<Self, String> {
+        let split_results: Vec<_> = v
+            .split_whitespace()
+            .filter_map(|s| s.parse::<f64>().ok())
+            .collect();
+        if split_results.len() != 3 {
+            return Err(format!(
+                "Wrong vector element count, expected 3 found {} for [{}]",
+                split_results.len(),
+                v
+            ));
+        }
+        let mut res = [0.0f64; 3];
+        res.copy_from_slice(&split_results);
+        Ok(Vec3(res))
+    }
+}
+
 impl YaDeserialize for Geometry {
     fn deserialize<R: Read>(
         deserializer: &mut yaserde::de::Deserializer<R>,
@@ -164,20 +183,9 @@ impl YaDeserialize for Geometry {
                 .collect();
             if name.local_name == "box" {
                 if let Some(v) = attributes.get("size") {
-                    let split_results: Vec<_> = v
-                        .split_whitespace()
-                        .filter_map(|s| s.parse::<f64>().ok())
-                        .collect();
-                    if split_results.len() != 3 {
-                        return Err(format!(
-                            "Wrong vector element count, expected 3 found {} for [{}]",
-                            split_results.len(),
-                            v
-                        ));
-                    }
-                    let mut res = [0.0f64; 3];
-                    res.copy_from_slice(&split_results);
-                    Ok(Self::Box { size: Vec3(res) })
+                    Ok(Self::Box {
+                        size: Vec3::from_string(v)?,
+                    })
                 } else {
                     Err(format!(
                         "Failed parsing attributes for box {:?}",
@@ -213,25 +221,9 @@ impl YaDeserialize for Geometry {
                     .get("filename")
                     .and_then(|a| a.parse::<String>().ok())
                 {
-                    let scale = if let Some(v) = attributes.get("scale") {
-                        // TODO(luca) remove duplication with all vec parsing code
-                        let split_results: Vec<_> = v
-                            .split_whitespace()
-                            .filter_map(|s| s.parse::<f64>().ok())
-                            .collect();
-                        if split_results.len() != 3 {
-                            return Err(format!(
-                                "Wrong vector element count, expected 3 found {} for [{}]",
-                                split_results.len(),
-                                v
-                            ));
-                        }
-                        let mut res = [0.0f64; 3];
-                        res.copy_from_slice(&split_results);
-                        Some(Vec3(res))
-                    } else {
-                        None
-                    };
+                    let scale = attributes
+                        .get("scale")
+                        .and_then(|s| Vec3::from_string(s).ok());
                     Ok(Self::Mesh { filename, scale })
                 } else {
                     Err("Error parsing filename for mesh".to_string())
@@ -268,7 +260,6 @@ pub struct Material {
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Visual {
-    // TODO(luca) check if name is actually implemented
     #[yaserde(attribute)]
     pub name: Option<String>,
     pub origin: Pose,
@@ -340,20 +331,7 @@ impl YaDeserialize for Vec3 {
     ) -> Result<Self, String> {
         deserializer.next_event()?;
         if let Ok(xml::reader::XmlEvent::Characters(v)) = deserializer.peek() {
-            let split_results: Vec<_> = v
-                .split_whitespace()
-                .filter_map(|s| s.parse::<f64>().ok())
-                .collect();
-            if split_results.len() != 3 {
-                return Err(format!(
-                    "Wrong vector element count, expected 3 found {} for [{}]",
-                    split_results.len(),
-                    v
-                ));
-            }
-            let mut res = [0.0f64; 3];
-            res.copy_from_slice(&split_results);
-            Ok(Vec3(res))
+            Ok(Vec3::from_string(v)?)
         } else {
             Err("String of elements not found while parsing Vec3".to_string())
         }
