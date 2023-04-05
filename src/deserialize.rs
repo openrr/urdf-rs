@@ -6,6 +6,7 @@ use yaserde_derive::{YaDeserialize, YaSerialize};
 
 use std::io::{Read, Write};
 
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
@@ -37,89 +38,209 @@ pub struct Inertial {
     pub inertia: Inertia,
 }
 
-#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
-pub struct BoxGeometry {
-    #[yaserde(attribute)]
-    pub size: Vec3,
-}
-
-#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
-pub struct CylinderGeometry {
-    #[yaserde(attribute)]
-    pub radius: f64,
-    #[yaserde(attribute)]
-    pub length: f64,
-}
-
-#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
-pub struct CapsuleGeometry {
-    #[yaserde(attribute)]
-    pub radius: f64,
-    #[yaserde(attribute)]
-    pub length: f64,
-}
-
-#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
-pub struct SphereGeometry {
-    #[yaserde(attribute)]
-    pub radius: f64,
-}
-
-#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
-pub struct MeshGeometry {
-    #[yaserde(attribute)]
-    pub filename: String,
-    #[yaserde(attribute)]
-    pub scale: Option<Vec3>,
-}
-
+// TODO(anyone) Derive YaSerialize and YaSerialize and remove custom impl once upstream bug is fixed
+// https://github.com/media-io/yaserde/issues/129
 #[derive(Debug, Clone)]
 pub enum Geometry {
-    Box(BoxGeometry),
-    Cylinder(CylinderGeometry),
-    Capsule(CapsuleGeometry),
-    Sphere(SphereGeometry),
-    Mesh(MeshGeometry),
+    Box {
+        size: Vec3,
+    },
+    Cylinder {
+        radius: f64,
+        length: f64,
+    },
+    Capsule {
+        radius: f64,
+        length: f64,
+    },
+    Sphere {
+        radius: f64,
+    },
+    Mesh {
+        filename: String,
+        scale: Option<Vec3>,
+    },
 }
 
-#[derive(Debug, YaDeserialize, YaSerialize, Clone)]
-pub struct GeometrySerde {
-    #[yaserde(rename = "box")]
-    box_geometry: Option<BoxGeometry>,
-    cylinder: Option<CylinderGeometry>,
-    capsule: Option<CapsuleGeometry>,
-    sphere: Option<SphereGeometry>,
-    mesh: Option<MeshGeometry>,
-}
-
-impl From<&GeometrySerde> for Geometry {
-    fn from(geom: &GeometrySerde) -> Geometry {
-        if let Some(b) = &geom.box_geometry {
-            Geometry::Box(b.clone())
-        } else if let Some(c) = &geom.cylinder {
-            Geometry::Cylinder(c.clone())
-        } else if let Some(c) = &geom.capsule {
-            Geometry::Capsule(c.clone())
-        } else if let Some(s) = &geom.sphere {
-            Geometry::Sphere(s.clone())
-        } else if let Some(m) = &geom.mesh {
-            Geometry::Mesh(m.clone())
-        } else {
-            panic!("Invalid geometry serde structure");
+impl Default for Geometry {
+    fn default() -> Self {
+        Self::Box {
+            size: Vec3::default(),
         }
     }
 }
 
-impl Default for GeometrySerde {
-    fn default() -> Self {
-        Self {
-            box_geometry: Some(BoxGeometry {
-                size: Vec3::default(),
-            }),
-            cylinder: None,
-            capsule: None,
-            sphere: None,
-            mesh: None,
+impl YaSerialize for Geometry {
+    fn serialize<W: Write>(
+        &self,
+        serializer: &mut yaserde::ser::Serializer<W>,
+    ) -> Result<(), String> {
+        serializer
+            .write(xml::writer::XmlEvent::start_element("geometry"))
+            .map_err(|e| e.to_string())?;
+        match self {
+            Geometry::Box { size } => {
+                dbg!(&format!("{:.1} {:.1} {:.1}", size[0], size[1], size[2]));
+                serializer
+                    .write(
+                        xml::writer::XmlEvent::start_element("box")
+                            .attr("size", &format!("{} {} {}", size[0], size[1], size[2])),
+                    )
+                    .map_err(|e| e.to_string())?;
+            }
+            Geometry::Cylinder { radius, length } => {
+                serializer
+                    .write(
+                        xml::writer::XmlEvent::start_element("cylinder")
+                            .attr("radius", &radius.to_string())
+                            .attr("length", &length.to_string()),
+                    )
+                    .map_err(|e| e.to_string())?;
+            }
+            Geometry::Capsule { radius, length } => {
+                serializer
+                    .write(
+                        xml::writer::XmlEvent::start_element("capsule")
+                            .attr("radius", &radius.to_string())
+                            .attr("length", &length.to_string()),
+                    )
+                    .map_err(|e| e.to_string())?;
+            }
+            Geometry::Sphere { radius } => {
+                serializer
+                    .write(
+                        xml::writer::XmlEvent::start_element("sphere")
+                            .attr("radius", &radius.to_string()),
+                    )
+                    .map_err(|e| e.to_string())?;
+            }
+            Geometry::Mesh { filename, scale } => {
+                let builder =
+                    xml::writer::XmlEvent::start_element("mesh").attr("filename", filename);
+                if let Some(scale) = scale {
+                    serializer
+                        .write(
+                            builder
+                                .attr("scale", &format!("{} {} {}", scale[0], scale[1], scale[2])),
+                        )
+                        .map_err(|e| e.to_string())?;
+                } else {
+                    serializer.write(builder).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+        serializer
+            .write(xml::writer::XmlEvent::end_element())
+            .map_err(|e| e.to_string())?;
+        serializer
+            .write(xml::writer::XmlEvent::end_element())
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn serialize_attributes(
+        &self,
+        attributes: Vec<OwnedAttribute>,
+        namespace: Namespace,
+    ) -> Result<(Vec<OwnedAttribute>, Namespace), String> {
+        Ok((attributes, namespace))
+    }
+}
+
+impl YaDeserialize for Geometry {
+    fn deserialize<R: Read>(
+        deserializer: &mut yaserde::de::Deserializer<R>,
+    ) -> Result<Self, String> {
+        deserializer.next_event()?;
+        if let Ok(xml::reader::XmlEvent::StartElement {
+            name,
+            attributes,
+            namespace: _,
+        }) = deserializer.peek()
+        {
+            let attributes: HashMap<_, _> = attributes
+                .iter()
+                .map(|attr| (attr.name.local_name.clone(), attr.value.clone()))
+                .collect();
+            if name.local_name == "box" {
+                if let Some(v) = attributes.get("size") {
+                    let split_results: Vec<_> = v
+                        .split_whitespace()
+                        .filter_map(|s| s.parse::<f64>().ok())
+                        .collect();
+                    if split_results.len() != 3 {
+                        return Err(format!(
+                            "Wrong vector element count, expected 3 found {} for [{}]",
+                            split_results.len(),
+                            v
+                        ));
+                    }
+                    let mut res = [0.0f64; 3];
+                    res.copy_from_slice(&split_results);
+                    Ok(Self::Box { size: Vec3(res) })
+                } else {
+                    Err(format!(
+                        "Failed parsing attributes for box {:?}",
+                        attributes
+                    ))
+                }
+            } else if name.local_name == "cylinder" {
+                if let (Some(length), Some(radius)) = (
+                    attributes.get("length").and_then(|a| a.parse::<f64>().ok()),
+                    attributes.get("radius").and_then(|a| a.parse::<f64>().ok()),
+                ) {
+                    Ok(Self::Cylinder { length, radius })
+                } else {
+                    Err("Failed parsing radius and size for cylinder geometry".to_string())
+                }
+            } else if name.local_name == "capsule" {
+                if let (Some(length), Some(radius)) = (
+                    attributes.get("length").and_then(|a| a.parse::<f64>().ok()),
+                    attributes.get("radius").and_then(|a| a.parse::<f64>().ok()),
+                ) {
+                    Ok(Self::Capsule { length, radius })
+                } else {
+                    Err("Failed parsing radius and size for capsule geometry".to_string())
+                }
+            } else if name.local_name == "sphere" {
+                if let Some(radius) = attributes.get("radius").and_then(|a| a.parse::<f64>().ok()) {
+                    Ok(Self::Sphere { radius })
+                } else {
+                    Err("Failed parsing radius and size for sphere geometry".to_string())
+                }
+            } else if name.local_name == "mesh" {
+                if let Some(filename) = attributes
+                    .get("filename")
+                    .and_then(|a| a.parse::<String>().ok())
+                {
+                    let scale = if let Some(v) = attributes.get("scale") {
+                        // TODO(luca) remove duplication with all vec parsing code
+                        let split_results: Vec<_> = v
+                            .split_whitespace()
+                            .filter_map(|s| s.parse::<f64>().ok())
+                            .collect();
+                        if split_results.len() != 3 {
+                            return Err(format!(
+                                "Wrong vector element count, expected 3 found {} for [{}]",
+                                split_results.len(),
+                                v
+                            ));
+                        }
+                        let mut res = [0.0f64; 3];
+                        res.copy_from_slice(&split_results);
+                        Some(Vec3(res))
+                    } else {
+                        None
+                    };
+                    Ok(Self::Mesh { filename, scale })
+                } else {
+                    Err("Error parsing filename for mesh".to_string())
+                }
+            } else {
+                Err(format!("Invalid geometry name [{}] found", name.local_name))
+            }
+        } else {
+            Err("Elements not found while parsing Geometry".to_string())
         }
     }
 }
@@ -151,7 +272,7 @@ pub struct Visual {
     #[yaserde(attribute)]
     pub name: Option<String>,
     pub origin: Pose,
-    pub geometry: GeometrySerde,
+    pub geometry: Geometry,
     pub material: Option<Material>,
 }
 
@@ -160,7 +281,7 @@ pub struct Collision {
     #[yaserde(attribute)]
     pub name: Option<String>,
     pub origin: Pose,
-    pub geometry: GeometrySerde,
+    pub geometry: Geometry,
 }
 
 /// Urdf Link element

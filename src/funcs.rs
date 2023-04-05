@@ -84,7 +84,7 @@ pub fn write_to_string(robot: &Robot) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use crate::{read_from_string, write_to_string};
-    use crate::{BoxGeometry, CylinderGeometry, Geometry, JointType, MeshGeometry, Robot};
+    use crate::{Geometry, JointType, Robot};
     use assert_approx_eq::assert_approx_eq;
 
     fn check_robot(robot: &Robot) {
@@ -102,29 +102,29 @@ mod tests {
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
-        match (&robot.links[0].visual[0].geometry).into() {
-            Geometry::Box(BoxGeometry { size }) => {
+        match &robot.links[0].visual[0].geometry {
+            Geometry::Box { size } => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
                 assert_approx_eq!(size[2], 3.0f64);
             }
             _ => panic!("geometry error"),
         }
-        match (&robot.links[0].visual[1].geometry).into() {
-            Geometry::Mesh(MeshGeometry {
+        match &robot.links[0].visual[1].geometry {
+            Geometry::Mesh {
                 ref filename,
                 scale,
-            }) => {
+            } => {
                 assert_eq!(filename, "aa.dae");
                 assert!(scale.is_none());
             }
             _ => panic!("geometry error"),
         }
-        match (&robot.links[0].visual[2].geometry).into() {
-            Geometry::Mesh(MeshGeometry {
+        match &robot.links[0].visual[2].geometry {
+            Geometry::Mesh {
                 ref filename,
                 scale,
-            }) => {
+            } => {
                 assert_eq!(filename, "bbb.dae");
                 assert!(scale.is_some());
             }
@@ -132,8 +132,8 @@ mod tests {
         }
 
         assert_eq!(robot.links[0].collision.len(), 1);
-        match (&robot.links[0].collision[0].geometry).into() {
-            Geometry::Cylinder(CylinderGeometry { radius, length }) => {
+        match &robot.links[0].collision[0].geometry {
+            Geometry::Cylinder { radius, length } => {
                 assert_approx_eq!(radius, 1.0);
                 assert_approx_eq!(length, 0.5);
             }
@@ -228,7 +228,7 @@ mod tests {
         let robot = read_from_string(s).unwrap();
         dbg!(&robot);
 
-        //check_robot(&robot);
+        check_robot(&robot);
 
         // Loopback test
         let s = write_to_string(&robot).unwrap();
