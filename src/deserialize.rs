@@ -398,7 +398,7 @@ impl YaDeserialize for Vec4 {
             res.copy_from_slice(&split_results);
             Ok(Vec4(res))
         } else {
-            Err("String of elements not found while parsing Vec3".to_string())
+            Err("String of elements not found while parsing Vec4".to_string())
         }
     }
 }
