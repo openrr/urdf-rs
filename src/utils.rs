@@ -4,6 +4,7 @@ use crate::funcs::*;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use std::borrow::Cow;
 use std::path::Path;
 use std::process::Command;
 
@@ -64,7 +65,7 @@ pub fn rospack_find(package: &str) -> Option<String> {
     }
 }
 
-pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
+pub fn expand_package_path<'a>(filename: &'a str, base_dir: Option<&Path>) -> Cow<'a, str> {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new("^package://(\\w+)/").unwrap());
 
     if filename.starts_with("package://") {
@@ -74,17 +75,20 @@ pub fn expand_package_path(filename: &str, base_dir: Option<&Path>) -> String {
                 None => panic!("failed to find ros package {}", &ma[1]),
             }
         })
-        .to_string()
     } else if filename.starts_with("https://") || filename.starts_with("http://") {
-        filename.to_owned()
+        filename.into()
     } else if let Some(abs_path) = filename.strip_prefix("file://") {
-        abs_path.to_owned()
+        abs_path.into()
     } else if let Some(base_dir) = base_dir {
         let mut relative_path_from_urdf = base_dir.to_owned();
         relative_path_from_urdf.push(filename);
-        relative_path_from_urdf.to_str().unwrap().to_owned()
+        relative_path_from_urdf
+            .into_os_string()
+            .into_string()
+            .unwrap()
+            .into()
     } else {
-        filename.to_owned()
+        filename.into()
     }
 }
 
