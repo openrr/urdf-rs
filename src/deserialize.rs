@@ -1,6 +1,6 @@
-use yaserde::xml;
-use yaserde::xml::attribute::OwnedAttribute;
-use yaserde::xml::namespace::Namespace;
+use xml::attribute::OwnedAttribute;
+use xml::namespace::Namespace;
+use yaserde::__xml as xml;
 use yaserde::{YaDeserialize, YaSerialize};
 use yaserde_derive::{YaDeserialize, YaSerialize};
 
