@@ -184,16 +184,16 @@ fn it_works() {
     assert_eq!(robot.joints.len(), 2);
     assert_eq!(robot.links[0].visual.len(), 3);
     assert_eq!(robot.links[0].inertial.mass.value, 1.0);
-    let xyz = &robot.links[0].visual[0].origin.xyz;
+    let xyz = robot.links[0].visual[0].origin.xyz;
     assert_approx_eq!(xyz[0], 0.1);
     assert_approx_eq!(xyz[1], 0.2);
     assert_approx_eq!(xyz[2], 0.3);
-    let rpy = &robot.links[0].visual[0].origin.rpy;
+    let rpy = robot.links[0].visual[0].origin.rpy;
     assert_approx_eq!(rpy[0], -0.1);
     assert_approx_eq!(rpy[1], -0.2);
     assert_approx_eq!(rpy[2], -0.3);
 
-    match &robot.links[0].visual[0].geometry {
+    match robot.links[0].visual[0].geometry {
         Geometry::Box { size } => {
             assert_approx_eq!(size[0], 1.0f64);
             assert_approx_eq!(size[1], 2.0f64);
@@ -201,17 +201,17 @@ fn it_works() {
         }
         _ => panic!("geometry error"),
     }
-    match &robot.links[0].visual[1].geometry {
+    match robot.links[0].visual[1].geometry {
         Geometry::Mesh {
             ref filename,
             scale,
         } => {
             assert_eq!(filename, "aa.dae");
-            assert!(scale.is_none());
+            assert_eq!(scale, None);
         }
         _ => panic!("geometry error"),
     }
-    match &robot.links[0].visual[2].geometry {
+    match robot.links[0].visual[2].geometry {
         Geometry::Mesh {
             ref filename,
             scale,
@@ -223,7 +223,7 @@ fn it_works() {
     }
 
     assert_eq!(robot.links[0].collision.len(), 1);
-    match &robot.links[0].collision[0].geometry {
+    match robot.links[0].collision[0].geometry {
         Geometry::Cylinder { radius, length } => {
             assert_approx_eq!(radius, 1.0);
             assert_approx_eq!(length, 0.5);
@@ -234,11 +234,11 @@ fn it_works() {
     assert_eq!(robot.materials.len(), 1);
 
     assert_eq!(robot.joints[0].name, "shoulder_pitch");
-    let xyz = &robot.joints[0].axis.xyz;
+    let xyz = robot.joints[0].axis.xyz;
     assert_approx_eq!(xyz[0], 0.0f64);
     assert_approx_eq!(xyz[1], 1.0f64);
     assert_approx_eq!(xyz[2], -1.0f64);
-    let xyz = &robot.joints[0].axis.xyz;
+    let xyz = robot.joints[0].axis.xyz;
     //"0 1 -1"
     assert_approx_eq!(xyz[0], 0.0);
     assert_approx_eq!(xyz[1], 1.0);

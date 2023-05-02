@@ -1,14 +1,11 @@
-use serde::{Deserialize, Serialize};
-use serde::de::{Visitor};
+use serde::Deserialize;
 
-use std::ops::{Deref, DerefMut};
-
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mass {
     pub value: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Inertia {
     pub ixx: f64,
     pub ixy: f64,
@@ -18,7 +15,7 @@ pub struct Inertia {
     pub izz: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Inertial {
     #[serde(default)]
     pub origin: Pose,
@@ -26,11 +23,12 @@ pub struct Inertial {
     pub inertia: Inertia,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Geometry {
     Box {
-        size: Vec3,
+        #[serde(with = "urdf_vec3")]
+        size: [f64; 3],
     },
     Cylinder {
         radius: f64,
@@ -45,37 +43,46 @@ pub enum Geometry {
     },
     Mesh {
         filename: String,
-        #[serde(default)]
-        scale: Option<Vec3>,
+        #[serde(with = "urdf_option_vec3", default)]
+        scale: Option<[f64; 3]>,
     },
 }
 
 impl Default for Geometry {
     fn default() -> Geometry {
         Geometry::Box {
-            size: Vec3::default(),
+            size: [0.0f64, 0.0, 0.0],
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Color {
-    pub rgba: Vec4,
+    #[serde(with = "urdf_vec4")]
+    pub rgba: [f64; 4],
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Texture {
     pub filename: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+impl Default for Texture {
+    fn default() -> Texture {
+        Texture {
+            filename: "".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Material {
     pub name: String,
     pub color: Option<Color>,
     pub texture: Option<Texture>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Visual {
     pub name: Option<String>,
     #[serde(default)]
@@ -84,7 +91,7 @@ pub struct Visual {
     pub material: Option<Material>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Collision {
     pub name: Option<String>,
     #[serde(default)]
@@ -94,7 +101,7 @@ pub struct Collision {
 
 /// Urdf Link element
 /// See <http://wiki.ros.org/urdf/XML/link> for more detail.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Link {
     pub name: String,
     #[serde(default)]
@@ -105,145 +112,124 @@ pub struct Link {
     pub collision: Vec<Collision>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Vec3([f64; 3]);
-
-impl Deref for Vec3 {
-    type Target = [f64; 3];
-
-    fn deref(&self) -> &Self::Target {
-        return &self.0;
-    }
+#[derive(Deserialize, Debug, Clone)]
+pub struct Vec3 {
+    #[serde(with = "urdf_vec3")]
+    pub data: [f64; 3],
 }
 
-impl DerefMut for Vec3 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        return &mut self.0;
-    }
-}
-
-impl Serialize for Vec3 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+mod urdf_vec3 {
+    use serde::{self, Deserialize, Deserializer};
+    pub fn deserialize<'a, D>(deserializer: D) -> Result<[f64; 3], D::Error>
     where
-        S: serde::Serializer,
+        D: Deserializer<'a>,
     {
-        serializer.serialize_str(&format!("{} {} {}", self.0[0], self.0[1], self.0[2]))
-    }
-}
-
-impl<'de> Deserialize<'de> for Vec3 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_str(Vec3Visitor)
-    }
-}
-
-struct Vec3Visitor;
-impl<'de> Visitor<'de> for Vec3Visitor {
-    type Value = Vec3;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(
-            "a string containing three floating point values separated by spaces",
-        )
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        let split_results: Vec<_> = v.split_whitespace().filter_map(|s| s.parse::<f64>().ok()).collect();
-        if split_results.len() != 3 {
-            return Err(E::custom(format!(
-                "Wrong vector element count, expected 3 found {} for [{}]", split_results.len(), v)));
+        let s = String::deserialize(deserializer)?;
+        let vec = s
+            .split(' ')
+            .filter_map(|x| x.parse::<f64>().ok())
+            .collect::<Vec<_>>();
+        if vec.len() != 3 {
+            return Err(serde::de::Error::custom(format!(
+                "failed to parse float array in {s}"
+            )));
         }
-        let mut res = [0.0f64; 3];
-        res.copy_from_slice(&split_results);
-        return Ok(Vec3(res));
+        let mut arr = [0.0f64; 3];
+        arr.copy_from_slice(&vec);
+        Ok(arr)
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Vec4([f64; 4]);
-
-impl Deref for Vec4 {
-    type Target = [f64; 4];
-
-    fn deref(&self) -> &Self::Target {
-        return &self.0;
-    }
-}
-
-impl DerefMut for Vec4 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        return &mut self.0;
-    }
-}
-
-impl Serialize for Vec4 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+mod urdf_option_vec3 {
+    use serde::{self, Deserialize, Deserializer};
+    pub fn deserialize<'a, D>(deserializer: D) -> Result<Option<[f64; 3]>, D::Error>
     where
-        S: serde::Serializer,
+        D: Deserializer<'a>,
     {
-        serializer.serialize_str(&format!("{} {} {} {}", self.0[0], self.0[1], self.0[2], self.0[3]))
-    }
-}
-
-impl<'de> Deserialize<'de> for Vec4 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_str(Vec4Visitor)
-    }
-}
-
-struct Vec4Visitor;
-impl<'de> Visitor<'de> for Vec4Visitor {
-    type Value = Vec4;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(
-            "a string containing four floating point values separated by spaces",
-        )
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        let split_results: Vec<_> = v.split_whitespace().filter_map(|s| s.parse::<f64>().ok()).collect();
-        if split_results.len() != 4 {
-            return Err(E::custom(format!(
-                "Wrong vector element count, expected 4 found {} for [{}]", split_results.len(), v)));
+        let s = String::deserialize(deserializer)?;
+        let vec = s
+            .split(' ')
+            .filter_map(|x| x.parse::<f64>().ok())
+            .collect::<Vec<_>>();
+        if vec.is_empty() {
+            Ok(None)
+        } else if vec.len() == 3 {
+            let mut arr = [0.0; 3];
+            arr.copy_from_slice(&vec);
+            Ok(Some(arr))
+        } else {
+            Err(serde::de::Error::custom(format!(
+                "failed to parse float array in {s}"
+            )))
         }
-        let mut res = [0.0f64; 4];
-        res.copy_from_slice(&split_results);
-        return Ok(Vec4(res));
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+mod urdf_vec4 {
+    use serde::{self, Deserialize, Deserializer};
+    pub fn deserialize<'a, D>(deserializer: D) -> Result<[f64; 4], D::Error>
+    where
+        D: Deserializer<'a>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let vec = s
+            .split(' ')
+            .filter_map(|x| x.parse::<f64>().ok())
+            .collect::<Vec<_>>();
+        if vec.len() != 4 {
+            return Err(serde::de::Error::custom(format!(
+                "failed to parse float array in {s}"
+            )));
+        }
+        let mut arr = [0.0f64; 4];
+        arr.copy_from_slice(&vec);
+        Ok(arr)
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Axis {
-    pub xyz: Vec3,
+    #[serde(with = "urdf_vec3")]
+    pub xyz: [f64; 3],
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+impl Default for Axis {
+    fn default() -> Axis {
+        Axis {
+            xyz: [1.0f64, 0.0, 0.0],
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Pose {
-    #[serde(default)]
-    pub xyz: Vec3,
-    #[serde(default)]
-    pub rpy: Vec3,
+    #[serde(with = "urdf_vec3")]
+    #[serde(default = "default_zero3")]
+    pub xyz: [f64; 3],
+    #[serde(with = "urdf_vec3")]
+    #[serde(default = "default_zero3")]
+    pub rpy: [f64; 3],
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+fn default_zero3() -> [f64; 3] {
+    [0.0f64, 0.0, 0.0]
+}
+
+impl Default for Pose {
+    fn default() -> Pose {
+        Pose {
+            xyz: default_zero3(),
+            rpy: default_zero3(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct LinkName {
     pub link: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum JointType {
     Revolute,
@@ -255,7 +241,7 @@ pub enum JointType {
     Spherical,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct JointLimit {
     #[serde(default)]
     pub lower: f64,
@@ -265,14 +251,14 @@ pub struct JointLimit {
     pub velocity: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Mimic {
     pub joint: String,
     pub multiplier: Option<f64>,
     pub offset: Option<f64>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct SafetyController {
     #[serde(default)]
     pub soft_lower_limit: f64,
@@ -285,7 +271,7 @@ pub struct SafetyController {
 
 /// Urdf Joint element
 /// See <http://wiki.ros.org/urdf/XML/joint> for more detail.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Joint {
     pub name: String,
     #[serde(rename = "type")]
@@ -303,7 +289,7 @@ pub struct Joint {
     pub safety_controller: Option<SafetyController>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Dynamics {
     #[serde(default)]
     pub damping: f64,
@@ -312,7 +298,7 @@ pub struct Dynamics {
 }
 
 /// Top level struct to access urdf.
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Robot {
     #[serde(default)]
     pub name: String,
