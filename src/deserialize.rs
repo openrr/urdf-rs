@@ -181,13 +181,13 @@ impl Deref for Vec3 {
     type Target = [f64; 3];
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        return &self.0;
     }
 }
 
 impl DerefMut for Vec3 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        return &mut self.0;
     }
 }
 
@@ -232,9 +232,9 @@ impl YaDeserialize for Vec3 {
             }
             let mut res = [0.0f64; 3];
             res.copy_from_slice(&split_results);
-            Ok(Vec3(res))
+            return Ok(Vec3(res));
         } else {
-            Err("String of elements not found while parsing Vec3".to_string())
+            return Err("String of elements not found while parsing Vec3".to_string());
         }
     }
 }
@@ -246,13 +246,13 @@ impl Deref for Vec4 {
     type Target = [f64; 4];
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        return &self.0;
     }
 }
 
 impl DerefMut for Vec4 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        return &mut self.0;
     }
 }
 
@@ -297,9 +297,9 @@ impl YaDeserialize for Vec4 {
             }
             let mut res = [0.0f64; 4];
             res.copy_from_slice(&split_results);
-            Ok(Vec4(res))
+            return Ok(Vec4(res));
         } else {
-            Err("String of elements not found while parsing Vec3".to_string())
+            return Err("String of elements not found while parsing Vec3".to_string());
         }
     }
 }

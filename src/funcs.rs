@@ -69,7 +69,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 /// ```
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
-    yaserde::de::from_str(string).map_err(UrdfError::new)
+    yaserde::de::from_str(&string).map_err(UrdfError::new)
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
