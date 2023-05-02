@@ -226,11 +226,16 @@ mod tests {
             </robot>
         "##;
         let robot = read_from_string(s).unwrap();
+        dbg!(&robot);
+
         check_robot(&robot);
 
         // Loopback test
         let s = write_to_string(&robot).unwrap();
+        println!("{}", s);
+
         let robot = read_from_string(&s).unwrap();
+        //dbg!(&robot);
         check_robot(&robot);
     }
 }
