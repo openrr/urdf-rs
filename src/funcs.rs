@@ -180,19 +180,53 @@ fn it_works() {
     let robot = read_from_string(s).unwrap();
 
     assert_eq!(robot.name, "robot");
-    assert_eq!(robot.links.len(), 3);
-    assert_eq!(robot.joints.len(), 2);
-    assert_eq!(robot.links[0].visual.len(), 3);
-    assert_eq!(robot.links[0].inertial.mass.value, 1.0);
-    let xyz = robot.links[0].visual[0].origin.xyz;
-    assert_approx_eq!(xyz[0], 0.1);
-    assert_approx_eq!(xyz[1], 0.2);
-    assert_approx_eq!(xyz[2], 0.3);
-    let rpy = robot.links[0].visual[0].origin.rpy;
-    assert_approx_eq!(rpy[0], -0.1);
-    assert_approx_eq!(rpy[1], -0.2);
-    assert_approx_eq!(rpy[2], -0.3);
 
+    // materials
+    assert_eq!(robot.materials.len(), 1);
+    let mat = &robot.materials[0];
+    assert_eq!(mat.name, "blue");
+    let rgba = mat.color.clone().unwrap().rgba;
+    assert_approx_eq!(rgba[0], 0.0);
+    assert_approx_eq!(rgba[1], 0.0);
+    assert_approx_eq!(rgba[2], 0.8);
+    assert_approx_eq!(rgba[3], 1.0);
+
+    // links
+    assert_eq!(robot.links.len(), 3);
+    assert_eq!(robot.links[0].name, "shoulder1");
+    assert_eq!(robot.links[1].name, "elbow1");
+    assert_eq!(robot.links[2].name, "wrist1");
+    let xyz = robot.links[0].inertial.origin.xyz;
+    assert_approx_eq!(xyz[0], 0.0);
+    assert_approx_eq!(xyz[1], 0.0);
+    assert_approx_eq!(xyz[2], 0.5);
+    let rpy = robot.links[0].inertial.origin.rpy;
+    assert_approx_eq!(rpy[0], 0.0);
+    assert_approx_eq!(rpy[1], 0.0);
+    assert_approx_eq!(rpy[2], 0.0);
+    assert_approx_eq!(robot.links[0].inertial.mass.value, 1.0);
+    assert_approx_eq!(robot.links[0].inertial.inertia.ixx, 100.0);
+    assert_approx_eq!(robot.links[0].inertial.inertia.ixy, 0.0);
+    assert_approx_eq!(robot.links[0].inertial.inertia.ixz, 0.0);
+    assert_approx_eq!(robot.links[0].inertial.inertia.iyy, 100.0);
+    assert_approx_eq!(robot.links[0].inertial.inertia.iyz, 0.0);
+    assert_approx_eq!(robot.links[0].inertial.inertia.izz, 100.0);
+
+    assert_eq!(robot.links[0].visual.len(), 3);
+    assert_eq!(robot.links[1].visual.len(), 0);
+    assert_eq!(robot.links[2].visual.len(), 0);
+    for visual in &robot.links[0].visual {
+        let xyz = visual.origin.xyz;
+        assert_approx_eq!(xyz[0], 0.1);
+        assert_approx_eq!(xyz[1], 0.2);
+        assert_approx_eq!(xyz[2], 0.3);
+        let rpy = visual.origin.rpy;
+        assert_approx_eq!(rpy[0], -0.1);
+        assert_approx_eq!(rpy[1], -0.2);
+        assert_approx_eq!(rpy[2], -0.3);
+    }
+
+    assert!(robot.links[0].visual[0].material.is_some());
     match robot.links[0].visual[0].geometry {
         Geometry::Box { size } => {
             assert_approx_eq!(size[0], 1.0f64);
@@ -201,6 +235,7 @@ fn it_works() {
         }
         _ => panic!("geometry error"),
     }
+    assert!(robot.links[0].visual[1].material.is_none());
     match robot.links[0].visual[1].geometry {
         Geometry::Mesh {
             ref filename,
@@ -211,18 +246,29 @@ fn it_works() {
         }
         _ => panic!("geometry error"),
     }
+    assert!(robot.links[0].visual[2].material.is_none());
     match robot.links[0].visual[2].geometry {
         Geometry::Mesh {
             ref filename,
             scale,
         } => {
             assert_eq!(filename, "bbb.dae");
-            assert!(scale.is_some());
+            assert_approx_eq!(scale.unwrap()[0], 2.0);
+            assert_approx_eq!(scale.unwrap()[1], 3.0);
+            assert_approx_eq!(scale.unwrap()[2], 4.0);
         }
         _ => panic!("geometry error"),
     }
 
     assert_eq!(robot.links[0].collision.len(), 1);
+    let xyz = robot.links[0].collision[0].origin.xyz;
+    assert_approx_eq!(xyz[0], 0.0);
+    assert_approx_eq!(xyz[1], 0.0);
+    assert_approx_eq!(xyz[2], 0.0);
+    let rpy = robot.links[0].collision[0].origin.rpy;
+    assert_approx_eq!(rpy[0], 0.0);
+    assert_approx_eq!(rpy[1], 0.0);
+    assert_approx_eq!(rpy[2], 0.0);
     match robot.links[0].collision[0].geometry {
         Geometry::Cylinder { radius, length } => {
             assert_approx_eq!(radius, 1.0);
@@ -231,16 +277,41 @@ fn it_works() {
         _ => panic!("geometry error"),
     }
 
-    assert_eq!(robot.materials.len(), 1);
-
+    // joints
+    assert_eq!(robot.joints.len(), 2);
     assert_eq!(robot.joints[0].name, "shoulder_pitch");
+    assert_eq!(robot.joints[0].parent.link, "shoulder1");
+    assert_eq!(robot.joints[0].child.link, "elbow1");
+    assert_eq!(robot.joints[0].joint_type, JointType::Revolute);
+    let xyz = robot.joints[0].origin.xyz;
+    assert_approx_eq!(xyz[0], 0.0);
+    assert_approx_eq!(xyz[1], 0.0);
+    assert_approx_eq!(xyz[2], 0.1);
     let xyz = robot.joints[0].axis.xyz;
-    assert_approx_eq!(xyz[0], 0.0f64);
-    assert_approx_eq!(xyz[1], 1.0f64);
-    assert_approx_eq!(xyz[2], -1.0f64);
-    let xyz = robot.joints[0].axis.xyz;
-    //"0 1 -1"
     assert_approx_eq!(xyz[0], 0.0);
     assert_approx_eq!(xyz[1], 1.0);
     assert_approx_eq!(xyz[2], -1.0);
+    let limit = &robot.joints[0].limit;
+    assert_approx_eq!(limit.lower, -1.0);
+    assert_approx_eq!(limit.upper, 1.0);
+    assert_approx_eq!(limit.effort, 0.0);
+    assert_approx_eq!(limit.velocity, 1.0);
+
+    assert_eq!(robot.joints[1].name, "shoulder_pitch");
+    assert_eq!(robot.joints[1].parent.link, "elbow1");
+    assert_eq!(robot.joints[1].child.link, "wrist1");
+    assert_eq!(robot.joints[1].joint_type, JointType::Revolute);
+    let xyz = robot.joints[1].origin.xyz;
+    assert_approx_eq!(xyz[0], 0.0);
+    assert_approx_eq!(xyz[1], 0.0);
+    assert_approx_eq!(xyz[2], 0.0);
+    let xyz = robot.joints[1].axis.xyz;
+    assert_approx_eq!(xyz[0], 0.0);
+    assert_approx_eq!(xyz[1], 1.0);
+    assert_approx_eq!(xyz[2], 0.0);
+    let limit = &robot.joints[1].limit;
+    assert_approx_eq!(limit.lower, -2.0);
+    assert_approx_eq!(limit.upper, 1.0);
+    assert_approx_eq!(limit.effort, 0.0);
+    assert_approx_eq!(limit.velocity, 1.0);
 }
