@@ -175,7 +175,7 @@ pub struct Link {
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct Vec3(pub [f64; 3]);
+pub struct Vec3([f64; 3]);
 
 impl Deref for Vec3 {
     type Target = [f64; 3];
@@ -240,7 +240,7 @@ impl YaDeserialize for Vec3 {
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct Vec4(pub [f64; 4]);
+pub struct Vec4([f64; 4]);
 
 impl Deref for Vec4 {
     type Target = [f64; 4];
