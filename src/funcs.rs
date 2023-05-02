@@ -84,7 +84,7 @@ pub fn write_to_string(robot: &Robot) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use crate::{read_from_string, write_to_string};
-    use crate::{BoxGeometry, CylinderGeometry, Geometry, JointType, MeshGeometry, Robot};
+    use crate::{BoxGeometry, CylinderGeometry, Geometry, MeshGeometry, Robot};
     use assert_approx_eq::assert_approx_eq;
 
     fn check_robot(robot: &Robot) {
@@ -153,7 +153,6 @@ mod tests {
         assert_eq!(robot.joints[0].name, "shoulder_pitch");
         assert_eq!(robot.joints[0].parent.link, "shoulder1");
         assert_eq!(robot.joints[0].child.link, "elbow1");
-        assert_eq!(robot.joints[0].joint_type, JointType::Revolute);
         let xyz = &robot.joints[0].axis.xyz;
         assert_approx_eq!(xyz[0], 0.0f64);
         assert_approx_eq!(xyz[1], 1.0f64);

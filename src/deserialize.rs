@@ -325,21 +325,15 @@ pub struct LinkName {
 }
 
 #[derive(Debug, Default, YaDeserialize, YaSerialize, Clone, PartialEq, Eq)]
+#[yaserde(rename_all = "snake_case")]
 pub enum JointType {
-    #[yaserde(rename = "revolute")]
     Revolute,
-    #[yaserde(rename = "continuous")]
     Continuous,
-    #[yaserde(rename = "prismatic")]
     Prismatic,
     #[default]
-    #[yaserde(rename = "fixed")]
     Fixed,
-    #[yaserde(rename = "floating")]
     Floating,
-    #[yaserde(rename = "planar")]
     Planar,
-    #[yaserde(rename = "spherical")]
     Spherical,
 }
 
@@ -372,7 +366,7 @@ pub struct SafetyController {
 pub struct Joint {
     #[yaserde(attribute)]
     pub name: String,
-    #[yaserde(attribute, rename = "type")]
+    #[yaserde(rename = "type")]
     pub joint_type: JointType,
     pub origin: Pose,
     pub parent: LinkName,
