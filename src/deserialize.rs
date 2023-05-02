@@ -285,7 +285,7 @@ pub struct Link {
     pub collision: Vec<Collision>,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Vec3(pub [f64; 3]);
 
 impl Deref for Vec3 {
@@ -337,7 +337,7 @@ impl YaDeserialize for Vec3 {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Vec4(pub [f64; 4]);
 
 impl Deref for Vec4 {
