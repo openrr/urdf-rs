@@ -112,12 +112,6 @@ pub struct Link {
     pub collision: Vec<Collision>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct Vec3 {
-    #[serde(with = "urdf_vec3")]
-    pub data: [f64; 3],
-}
-
 mod urdf_vec3 {
     use serde::{self, Deserialize, Deserializer};
     pub fn deserialize<'a, D>(deserializer: D) -> Result<[f64; 3], D::Error>
