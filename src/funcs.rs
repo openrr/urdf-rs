@@ -115,151 +115,132 @@ pub fn read_from_string(string: &str) -> Result<Robot> {
     serde_xml_rs::from_str(&sorted_string).map_err(UrdfError::new)
 }
 
-pub fn write_to_string(robot: &Robot) -> Result<String> {
-    serde_xml_rs::to_string(robot).map_err(UrdfError::new)
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{read_from_string, write_to_string};
-    use crate::{Geometry, Robot};
+#[test]
+fn it_works() {
     use assert_approx_eq::assert_approx_eq;
 
-    fn check_robot(robot: &Robot) {
-        assert_eq!(robot.name, "robot");
-        assert_eq!(robot.links.len(), 3);
-        assert_eq!(robot.joints.len(), 2);
-        assert_eq!(robot.links[0].visual.len(), 3);
-        assert_eq!(robot.links[0].inertial.mass.value, 1.0);
-        let xyz = &robot.links[0].visual[0].origin.xyz;
-        assert_approx_eq!(xyz[0], 0.1);
-        assert_approx_eq!(xyz[1], 0.2);
-        assert_approx_eq!(xyz[2], 0.3);
-        let rpy = &robot.links[0].visual[0].origin.rpy;
-        assert_approx_eq!(rpy[0], -0.1);
-        assert_approx_eq!(rpy[1], -0.2);
-        assert_approx_eq!(rpy[2], -0.3);
+    let s = r##"
+        <robot name="robot">
+            <material name="blue">
+              <color rgba="0.0 0.0 0.8 1.0"/>
+            </material>
 
-        match &robot.links[0].visual[0].geometry {
-            Geometry::Box { size } => {
-                assert_approx_eq!(size[0], 1.0f64);
-                assert_approx_eq!(size[1], 2.0f64);
-                assert_approx_eq!(size[2], 3.0f64);
-            }
-            _ => panic!("geometry error"),
-        }
-        match &robot.links[0].visual[1].geometry {
-            Geometry::Mesh {
-                ref filename,
-                scale,
-            } => {
-                assert_eq!(filename, "aa.dae");
-                assert!(scale.is_none());
-            }
-            _ => panic!("geometry error"),
-        }
-        match &robot.links[0].visual[2].geometry {
-            Geometry::Mesh {
-                ref filename,
-                scale,
-            } => {
-                assert_eq!(filename, "bbb.dae");
-                assert!(scale.is_some());
-            }
-            _ => panic!("geometry error"),
-        }
+            <link name="shoulder1">
+                <inertial>
+                    <origin xyz="0 0 0.5" rpy="0 0 0"/>
+                    <mass value="1"/>
+                    <inertia ixx="100"  ixy="0"  ixz="0" iyy="100" iyz="0" izz="100" />
+                </inertial>
+                <visual>
+                    <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
+                    <geometry>
+                        <box size="1.0 2.0 3.0" />
+                    </geometry>
+                    <material name="Cyan">
+                        <color rgba="0 1.0 1.0 1.0"/>
+                    </material>
+                </visual>
+                <visual>
+                    <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
+                    <geometry>
+                        <mesh filename="aa.dae" />
+                    </geometry>
+                </visual>
+                <collision>
+                    <origin xyz="0 0 0" rpy="0 0 0"/>
+                    <geometry>
+                        <cylinder radius="1" length="0.5"/>
+                    </geometry>
+                </collision>
+                <visual>
+                    <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
+                    <geometry>
+                        <mesh filename="bbb.dae" scale="2.0 3.0 4.0" />
+                    </geometry>
+                </visual>
+            </link>
+            <joint name="shoulder_pitch" type="revolute">
+                <origin xyz="0.0 0.0 0.1" />
+                <parent link="shoulder1" />
+                <child link="elbow1" />
+                <axis xyz="0 1 -1" />
+                <limit lower="-1" upper="1.0" effort="0" velocity="1.0"/>
+            </joint>
+            <link name="elbow1" />
+            <link name="wrist1" />
+            <joint name="shoulder_pitch" type="revolute">
+                <origin xyz="0.0 0.0 0.0" />
+                <parent link="elbow1" />
+                <child link="wrist1" />
+                <axis xyz="0 1 0" />
+                <limit lower="-2" upper="1.0" effort="0" velocity="1.0"/>
+            </joint>
+        </robot>
+    "##;
+    let robot = read_from_string(s).unwrap();
 
-        assert_eq!(robot.links[0].collision.len(), 1);
-        match &robot.links[0].collision[0].geometry {
-            Geometry::Cylinder { radius, length } => {
-                assert_approx_eq!(radius, 1.0);
-                assert_approx_eq!(length, 0.5);
-            }
-            _ => panic!("geometry error"),
+    assert_eq!(robot.name, "robot");
+    assert_eq!(robot.links.len(), 3);
+    assert_eq!(robot.joints.len(), 2);
+    assert_eq!(robot.links[0].visual.len(), 3);
+    assert_eq!(robot.links[0].inertial.mass.value, 1.0);
+    let xyz = &robot.links[0].visual[0].origin.xyz;
+    assert_approx_eq!(xyz[0], 0.1);
+    assert_approx_eq!(xyz[1], 0.2);
+    assert_approx_eq!(xyz[2], 0.3);
+    let rpy = &robot.links[0].visual[0].origin.rpy;
+    assert_approx_eq!(rpy[0], -0.1);
+    assert_approx_eq!(rpy[1], -0.2);
+    assert_approx_eq!(rpy[2], -0.3);
+
+    match &robot.links[0].visual[0].geometry {
+        Geometry::Box { size } => {
+            assert_approx_eq!(size[0], 1.0f64);
+            assert_approx_eq!(size[1], 2.0f64);
+            assert_approx_eq!(size[2], 3.0f64);
         }
-
-        assert_eq!(robot.materials.len(), 1);
-
-        assert_eq!(robot.joints[0].name, "shoulder_pitch");
-        let xyz = &robot.joints[0].axis.xyz;
-        assert_approx_eq!(xyz[0], 0.0f64);
-        assert_approx_eq!(xyz[1], 1.0f64);
-        assert_approx_eq!(xyz[2], -1.0f64);
-        let xyz = &robot.joints[0].axis.xyz;
-        //"0 1 -1"
-        assert_approx_eq!(xyz[0], 0.0);
-        assert_approx_eq!(xyz[1], 1.0);
-        assert_approx_eq!(xyz[2], -1.0);
+        _ => panic!("geometry error"),
+    }
+    match &robot.links[0].visual[1].geometry {
+        Geometry::Mesh {
+            ref filename,
+            scale,
+        } => {
+            assert_eq!(filename, "aa.dae");
+            assert!(scale.is_none());
+        }
+        _ => panic!("geometry error"),
+    }
+    match &robot.links[0].visual[2].geometry {
+        Geometry::Mesh {
+            ref filename,
+            scale,
+        } => {
+            assert_eq!(filename, "bbb.dae");
+            assert!(scale.is_some());
+        }
+        _ => panic!("geometry error"),
     }
 
-    #[test]
-    fn deserialization() {
-        let s = r##"
-            <robot name="robot">
-                <material name="blue">
-                  <color rgba="0.0 0.0 0.8 1.0"/>
-                </material>
-
-                <link name="shoulder1">
-                    <inertial>
-                        <origin xyz="0 0 0.5" rpy="0 0 0"/>
-                        <mass value="1"/>
-                        <inertia ixx="100"  ixy="0"  ixz="0" iyy="100" iyz="0" izz="100" />
-                    </inertial>
-                    <visual>
-                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
-                        <geometry>
-                            <box size="1.0 2.0 3.0" />
-                        </geometry>
-                        <material name="Cyan">
-                            <color rgba="0 1.0 1.0 1.0"/>
-                        </material>
-                    </visual>
-                    <visual>
-                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
-                        <geometry>
-                            <mesh filename="aa.dae" />
-                        </geometry>
-                    </visual>
-                    <collision>
-                        <origin xyz="0 0 0" rpy="0 0 0"/>
-                        <geometry>
-                            <cylinder radius="1" length="0.5"/>
-                        </geometry>
-                    </collision>
-                    <visual>
-                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
-                        <geometry>
-                            <mesh filename="bbb.dae" scale="2.0 3.0 4.0" />
-                        </geometry>
-                    </visual>
-                </link>
-                <joint name="shoulder_pitch" type="revolute">
-                    <origin xyz="0.0 0.0 0.1" />
-                    <parent link="shoulder1" />
-                    <child link="elbow1" />
-                    <axis xyz="0 1 -1" />
-                    <limit lower="-1" upper="1.0" effort="0" velocity="1.0"/>
-                </joint>
-                <link name="elbow1" />
-                <link name="wrist1" />
-                <joint name="shoulder_pitch" type="revolute">
-                    <origin xyz="0.0 0.0 0.0" />
-                    <parent link="elbow1" />
-                    <child link="wrist1" />
-                    <axis xyz="0 1 0" />
-                    <limit lower="-2" upper="1.0" effort="0" velocity="1.0"/>
-                </joint>
-            </robot>
-        "##;
-        let robot = read_from_string(s).unwrap();
-
-        check_robot(&robot);
-
-        // Loopback test
-        let s = write_to_string(&robot).unwrap();
-
-        let robot = read_from_string(&s).unwrap();
-        check_robot(&robot);
+    assert_eq!(robot.links[0].collision.len(), 1);
+    match &robot.links[0].collision[0].geometry {
+        Geometry::Cylinder { radius, length } => {
+            assert_approx_eq!(radius, 1.0);
+            assert_approx_eq!(length, 0.5);
+        }
+        _ => panic!("geometry error"),
     }
+
+    assert_eq!(robot.materials.len(), 1);
+
+    assert_eq!(robot.joints[0].name, "shoulder_pitch");
+    let xyz = &robot.joints[0].axis.xyz;
+    assert_approx_eq!(xyz[0], 0.0f64);
+    assert_approx_eq!(xyz[1], 1.0f64);
+    assert_approx_eq!(xyz[2], -1.0f64);
+    let xyz = &robot.joints[0].axis.xyz;
+    //"0 1 -1"
+    assert_approx_eq!(xyz[0], 0.0);
+    assert_approx_eq!(xyz[1], 1.0);
+    assert_approx_eq!(xyz[2], -1.0);
 }
