@@ -1,8 +1,8 @@
-use yaserde::xml;
-use yaserde::xml::attribute::OwnedAttribute;
+use yaserde::{YaSerialize, YaDeserialize};
 use yaserde::xml::namespace::Namespace;
-use yaserde::{YaDeserialize, YaSerialize};
-use yaserde_derive::{YaDeserialize, YaSerialize};
+use yaserde::xml::attribute::OwnedAttribute;
+use yaserde::xml;
+use yaserde_derive::{YaSerialize, YaDeserialize};
 
 use std::io::{Read, Write};
 
@@ -113,9 +113,7 @@ impl From<&GeometrySerde> for Geometry {
 impl Default for GeometrySerde {
     fn default() -> Self {
         Self {
-            box_geometry: Some(BoxGeometry {
-                size: Vec3::default(),
-            }),
+            box_geometry: Some(BoxGeometry{size: Vec3::default()}),
             cylinder: None,
             capsule: None,
             sphere: None,
@@ -192,31 +190,23 @@ impl DerefMut for Vec3 {
 }
 
 impl YaSerialize for Vec3 {
-    fn serialize<W: Write>(
-        &self,
-        serializer: &mut yaserde::ser::Serializer<W>,
-    ) -> Result<(), String> {
-        serializer
-            .write(xml::writer::XmlEvent::Characters(&format!(
-                "{} {} {}",
-                self.0[0], self.0[1], self.0[2]
-            )))
-            .map_err(|e| e.to_string())
+    fn serialize<W: Write>(&self, serializer: &mut yaserde::ser::Serializer<W>) -> Result<(), String>
+    {
+        serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {}", self.0[0], self.0[1], self.0[2]))).map_err(|e| e.to_string())
     }
 
     fn serialize_attributes(
-        &self,
-        attributes: Vec<OwnedAttribute>,
-        namespace: Namespace,
+        &self, 
+        attributes: Vec<OwnedAttribute>, 
+        namespace: Namespace
     ) -> Result<(Vec<OwnedAttribute>, Namespace), String> {
         Ok((attributes, namespace))
     }
 }
 
 impl YaDeserialize for Vec3 {
-    fn deserialize<R: Read>(
-        deserializer: &mut yaserde::de::Deserializer<R>,
-    ) -> Result<Self, String> {
+    fn deserialize<R: Read>(deserializer: &mut yaserde::de::Deserializer<R>) -> Result<Self, String>
+    {
         deserializer.next_event()?;
         if let Ok(xml::reader::XmlEvent::Characters(v)) = deserializer.peek() {
             let split_results: Vec<_> = v
@@ -257,31 +247,23 @@ impl DerefMut for Vec4 {
 }
 
 impl YaSerialize for Vec4 {
-    fn serialize<W: Write>(
-        &self,
-        serializer: &mut yaserde::ser::Serializer<W>,
-    ) -> Result<(), String> {
-        serializer
-            .write(xml::writer::XmlEvent::Characters(&format!(
-                "{} {} {} {}",
-                self.0[0], self.0[1], self.0[2], self.0[3]
-            )))
-            .map_err(|e| e.to_string())
+    fn serialize<W: Write>(&self, serializer: &mut yaserde::ser::Serializer<W>) -> Result<(), String>
+    {
+        serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {} {}", self.0[0], self.0[1], self.0[2], self.0[3]))).map_err(|e| e.to_string())
     }
 
     fn serialize_attributes(
-        &self,
-        attributes: Vec<OwnedAttribute>,
-        namespace: Namespace,
+        &self, 
+        attributes: Vec<OwnedAttribute>, 
+        namespace: Namespace
     ) -> Result<(Vec<OwnedAttribute>, Namespace), String> {
         Ok((attributes, namespace))
     }
 }
 
 impl YaDeserialize for Vec4 {
-    fn deserialize<R: Read>(
-        deserializer: &mut yaserde::de::Deserializer<R>,
-    ) -> Result<Self, String> {
+    fn deserialize<R: Read>(deserializer: &mut yaserde::de::Deserializer<R>) -> Result<Self, String>
+    {
         deserializer.next_event()?;
         if let xml::reader::XmlEvent::Characters(v) = deserializer.peek()? {
             let split_results: Vec<_> = v
