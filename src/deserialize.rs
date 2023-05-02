@@ -1,5 +1,6 @@
-use yaserde::{YaSerialize, YaDeserialize};
+use yaserde::{YaSerialize, YaDeserialize, Visitor};
 use yaserde::xml::namespace::Namespace;
+use yaserde::ser::Serializer;
 use yaserde::xml::attribute::OwnedAttribute;
 use yaserde::xml;
 use yaserde_derive::{YaSerialize, YaDeserialize};
@@ -73,7 +74,6 @@ pub struct MeshGeometry {
     pub scale: Option<Vec3>,
 }
 
-#[derive(Debug, Clone)]
 pub enum Geometry {
     Box(BoxGeometry),
     Cylinder(CylinderGeometry),
@@ -85,11 +85,15 @@ pub enum Geometry {
 #[derive(Debug, YaDeserialize, YaSerialize, Clone)]
 pub struct GeometrySerde {
     #[yaserde(rename = "box")]
-    box_geometry: Option<BoxGeometry>,
-    cylinder: Option<CylinderGeometry>,
-    capsule: Option<CapsuleGeometry>,
-    sphere: Option<SphereGeometry>,
-    mesh: Option<MeshGeometry>,
+    pub box_geometry: Option<BoxGeometry>,
+    #[yaserde(rename = "cylinder")]
+    pub cylinder: Option<CylinderGeometry>,
+    #[yaserde(rename = "capsule")]
+    pub capsule: Option<CapsuleGeometry>,
+    #[yaserde(rename = "sphere")]
+    pub sphere: Option<SphereGeometry>,
+    #[yaserde(rename = "mesh")]
+    pub mesh: Option<MeshGeometry>,
 }
 
 impl From<&GeometrySerde> for Geometry {
@@ -124,13 +128,11 @@ impl Default for GeometrySerde {
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Color {
-    #[yaserde(attribute)]
     pub rgba: Vec4,
 }
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Texture {
-    #[yaserde(attribute)]
     pub filename: String,
 }
 
@@ -139,14 +141,11 @@ pub struct Material {
     #[yaserde(attribute)]
     pub name: String,
     pub color: Option<Color>,
-    #[yaserde(attribute)]
     pub texture: Option<Texture>,
 }
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Visual {
-    // TODO(luca) check if name is actually implemented
-    #[yaserde(attribute)]
     pub name: Option<String>,
     pub origin: Pose,
     pub geometry: GeometrySerde,
@@ -155,7 +154,6 @@ pub struct Visual {
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Collision {
-    #[yaserde(attribute)]
     pub name: Option<String>,
     pub origin: Pose,
     pub geometry: GeometrySerde,
@@ -192,9 +190,15 @@ impl DerefMut for Vec3 {
 impl YaSerialize for Vec3 {
     fn serialize<W: Write>(&self, serializer: &mut yaserde::ser::Serializer<W>) -> Result<(), String>
     {
-        serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {}", self.0[0], self.0[1], self.0[2]))).map_err(|e| e.to_string())
+        // TODO(luca) cleanup this
+        println!("Serializing {:?}", self);
+        match serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {}", self.0[0], self.0[1], self.0[2]))) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
+    // TODO(luca) check this implementation
     fn serialize_attributes(
         &self, 
         attributes: Vec<OwnedAttribute>, 
@@ -207,7 +211,7 @@ impl YaSerialize for Vec3 {
 impl YaDeserialize for Vec3 {
     fn deserialize<R: Read>(deserializer: &mut yaserde::de::Deserializer<R>) -> Result<Self, String>
     {
-        deserializer.next_event()?;
+        deserializer.next_event();
         if let Ok(xml::reader::XmlEvent::Characters(v)) = deserializer.peek() {
             let split_results: Vec<_> = v
                 .split_whitespace()
@@ -249,9 +253,14 @@ impl DerefMut for Vec4 {
 impl YaSerialize for Vec4 {
     fn serialize<W: Write>(&self, serializer: &mut yaserde::ser::Serializer<W>) -> Result<(), String>
     {
-        serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {} {}", self.0[0], self.0[1], self.0[2], self.0[3]))).map_err(|e| e.to_string())
+        // TODO(luca) cleanup this
+        match serializer.write(xml::writer::XmlEvent::Characters(&format!("{} {} {} {}", self.0[0], self.0[1], self.0[2], self.0[3]))) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
+    // TODO(luca) check this implementation
     fn serialize_attributes(
         &self, 
         attributes: Vec<OwnedAttribute>, 
@@ -264,7 +273,7 @@ impl YaSerialize for Vec4 {
 impl YaDeserialize for Vec4 {
     fn deserialize<R: Read>(deserializer: &mut yaserde::de::Deserializer<R>) -> Result<Self, String>
     {
-        deserializer.next_event()?;
+        deserializer.next_event();
         if let xml::reader::XmlEvent::Characters(v) = deserializer.peek()? {
             let split_results: Vec<_> = v
                 .split_whitespace()
@@ -306,6 +315,7 @@ pub struct LinkName {
     pub link: String,
 }
 
+// TODO(luca) see if we can avoid deriving default
 #[derive(Debug, Default, YaDeserialize, YaSerialize, Clone, PartialEq, Eq)]
 #[yaserde(rename_all = "snake_case")]
 pub enum JointType {
