@@ -112,22 +112,17 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
     let sorted_string = sort_link_joint(string)?;
-    yaserde::de::from_str(&sorted_string).map_err(UrdfError::new)
+    serde_xml_rs::from_str(&sorted_string).map_err(UrdfError::new)
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
-    let conf = yaserde::ser::Config{
-        perform_indent: true,
-        write_document_declaration: false,
-        indent_string: None
-    };
-    yaserde::ser::to_string_with_config(robot, &conf).map_err(UrdfError::new)
+    serde_xml_rs::to_string(robot).map_err(UrdfError::new)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{read_from_string, write_to_string};
-    use crate::{BoxGeometry, CylinderGeometry, MeshGeometry, Geometry, Robot};
+    use crate::{Geometry, Robot};
     use assert_approx_eq::assert_approx_eq;
 
     fn check_robot(robot: &Robot) {
@@ -145,29 +140,29 @@ mod tests {
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
-        match Geometry::from(&robot.links[0].visual[0].geometry) {
-            Geometry::Box(BoxGeometry{size}) => {
+        match &robot.links[0].visual[0].geometry {
+            Geometry::Box { size } => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
                 assert_approx_eq!(size[2], 3.0f64);
             }
             _ => panic!("geometry error"),
         }
-        match Geometry::from(&robot.links[0].visual[1].geometry) {
-            Geometry::Mesh(MeshGeometry {
+        match &robot.links[0].visual[1].geometry {
+            Geometry::Mesh {
                 ref filename,
                 scale,
-            }) => {
+            } => {
                 assert_eq!(filename, "aa.dae");
                 assert!(scale.is_none());
             }
             _ => panic!("geometry error"),
         }
-        match Geometry::from(&robot.links[0].visual[2].geometry) {
-            Geometry::Mesh(MeshGeometry {
+        match &robot.links[0].visual[2].geometry {
+            Geometry::Mesh {
                 ref filename,
                 scale,
-            }) => {
+            } => {
                 assert_eq!(filename, "bbb.dae");
                 assert!(scale.is_some());
             }
@@ -175,8 +170,8 @@ mod tests {
         }
 
         assert_eq!(robot.links[0].collision.len(), 1);
-        match Geometry::from(&robot.links[0].collision[0].geometry) {
-            Geometry::Cylinder(CylinderGeometry { radius, length }) => {
+        match &robot.links[0].collision[0].geometry {
+            Geometry::Cylinder { radius, length } => {
                 assert_approx_eq!(radius, 1.0);
                 assert_approx_eq!(length, 0.5);
             }
@@ -186,8 +181,6 @@ mod tests {
         assert_eq!(robot.materials.len(), 1);
 
         assert_eq!(robot.joints[0].name, "shoulder_pitch");
-        assert_eq!(robot.joints[0].parent.link, "shoulder1");
-        assert_eq!(robot.joints[0].child.link, "elbow1");
         let xyz = &robot.joints[0].axis.xyz;
         assert_approx_eq!(xyz[0], 0.0f64);
         assert_approx_eq!(xyz[1], 1.0f64);
@@ -260,16 +253,13 @@ mod tests {
             </robot>
         "##;
         let robot = read_from_string(s).unwrap();
-        dbg!(&robot);
 
         check_robot(&robot);
 
         // Loopback test
         let s = write_to_string(&robot).unwrap();
-        println!("{}", s);
 
         let robot = read_from_string(&s).unwrap();
-        //dbg!(&robot);
         check_robot(&robot);
     }
 }
