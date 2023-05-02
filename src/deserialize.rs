@@ -1,5 +1,5 @@
-use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
+use serde::de::{Visitor};
 
 use std::ops::{Deref, DerefMut};
 
@@ -145,23 +145,19 @@ impl<'de> Visitor<'de> for Vec3Visitor {
     type Value = Vec3;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a string containing three floating point values separated by spaces")
+        formatter.write_str(
+            "a string containing three floating point values separated by spaces",
+        )
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        let split_results: Vec<_> = v
-            .split_whitespace()
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
+        let split_results: Vec<_> = v.split_whitespace().filter_map(|s| s.parse::<f64>().ok()).collect();
         if split_results.len() != 3 {
             return Err(E::custom(format!(
-                "Wrong vector element count, expected 3 found {} for [{}]",
-                split_results.len(),
-                v
-            )));
+                "Wrong vector element count, expected 3 found {} for [{}]", split_results.len(), v)));
         }
         let mut res = [0.0f64; 3];
         res.copy_from_slice(&split_results);
@@ -191,10 +187,7 @@ impl Serialize for Vec4 {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&format!(
-            "{} {} {} {}",
-            self.0[0], self.0[1], self.0[2], self.0[3]
-        ))
+        serializer.serialize_str(&format!("{} {} {} {}", self.0[0], self.0[1], self.0[2], self.0[3]))
     }
 }
 
@@ -212,23 +205,19 @@ impl<'de> Visitor<'de> for Vec4Visitor {
     type Value = Vec4;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a string containing four floating point values separated by spaces")
+        formatter.write_str(
+            "a string containing four floating point values separated by spaces",
+        )
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        let split_results: Vec<_> = v
-            .split_whitespace()
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
+        let split_results: Vec<_> = v.split_whitespace().filter_map(|s| s.parse::<f64>().ok()).collect();
         if split_results.len() != 4 {
             return Err(E::custom(format!(
-                "Wrong vector element count, expected 4 found {} for [{}]",
-                split_results.len(),
-                v
-            )));
+                "Wrong vector element count, expected 4 found {} for [{}]", split_results.len(), v)));
         }
         let mut res = [0.0f64; 4];
         res.copy_from_slice(&split_results);
