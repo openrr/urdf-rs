@@ -451,16 +451,23 @@ pub struct JointLimit {
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Mimic {
+    #[yaserde(attribute)]
     pub joint: String,
+    #[yaserde(attribute)]
     pub multiplier: Option<f64>,
+    #[yaserde(attribute)]
     pub offset: Option<f64>,
 }
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct SafetyController {
+    #[yaserde(attribute)]
     pub soft_lower_limit: f64,
+    #[yaserde(attribute)]
     pub soft_upper_limit: f64,
+    #[yaserde(attribute)]
     pub k_position: f64,
+    #[yaserde(attribute)]
     pub k_velocity: f64,
 }
 
@@ -484,7 +491,9 @@ pub struct Joint {
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct Dynamics {
+    #[yaserde(attribute)]
     pub damping: f64,
+    #[yaserde(attribute)]
     pub friction: f64,
 }
 
