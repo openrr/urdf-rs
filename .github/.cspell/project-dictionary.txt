@@ -1,4 +1,3 @@
-clippy
 funcs
 inorder
 rgba
@@ -8,5 +7,6 @@ rustdocflags
 rustflags
 rustfmt
 rustup
+SIGINT
 urdf
 xacro
