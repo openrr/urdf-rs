@@ -503,6 +503,7 @@ pub struct Dynamics {
 
 /// Top level struct to access urdf.
 #[derive(Debug, YaDeserialize, YaSerialize, Clone)]
+#[yaserde(rename = "robot")]
 pub struct Robot {
     #[yaserde(attribute)]
     pub name: String,

@@ -234,6 +234,7 @@ mod tests {
 
         // Loopback test
         let s = write_to_string(&robot).unwrap();
+        assert!(!s.contains("Robot"), "{s}"); // https://github.com/openrr/urdf-rs/issues/80
         let robot = read_from_string(&s).unwrap();
         check_robot(&robot);
     }
