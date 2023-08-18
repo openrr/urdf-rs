@@ -22,7 +22,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 /// # Examples
 ///
 /// ```
-/// let s = r##"
+/// let s = r#"
 ///     <robot name="robot">
 ///         <link name="shoulder1">
 ///             <inertial>
@@ -63,7 +63,7 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 ///             <limit lower="-2" upper="1.0" effort="0" velocity="1.0"/>
 ///         </joint>
 ///     </robot>
-///    "##;
+///    "#;
 /// let urdf_robot = urdf_rs::read_from_string(s).unwrap();
 /// println!("{:?}", urdf_robot.links[0].visual[0].origin.xyz);
 /// ```
@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        let s = r##"
+        let s = r#"
             <robot name="robot">
                 <material name="blue">
                   <color rgba="0.0 0.0 0.8 1.0"/>
@@ -228,7 +228,7 @@ mod tests {
                     <limit lower="-2" upper="1.0" effort="0" velocity="1.0"/>
                 </joint>
             </robot>
-        "##;
+        "#;
         let robot = read_from_string(s).unwrap();
         check_robot(&robot);
 
