@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/openrr/urdf-rs/ci.yml?branch=main&logo=github)](https://github.com/openrr/urdf-rs/actions) [![crates.io](https://img.shields.io/crates/v/urdf-rs.svg?logo=rust)](https://crates.io/crates/urdf-rs) [![docs](https://docs.rs/urdf-rs/badge.svg)](https://docs.rs/urdf-rs) [![discord](https://dcbadge.vercel.app/api/server/8DAFFKc88B?style=flat)](https://discord.gg/8DAFFKc88B)
 
-[URDF](http://wiki.ros.org/urdf) parser using [serde-xml-rs](https://github.com/RReverser/serde-xml-rs) for rust.
+[URDF](http://wiki.ros.org/urdf) parser for Rust.
 
 Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
 
