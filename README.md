@@ -18,14 +18,6 @@ let joints = urdf_robot.joints;
 println!("{:?}", joints[0].origin.xyz);
 ```
 
-## Contributors
-
-<a href="https://github.com/openrr/urdf-rs/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=openrr/urdf-rs" />
-</a>
-
-Made with [contrib.rocks](https://contrib.rocks).
-
 ## `OpenRR` Community
 
 [Here](https://discord.gg/8DAFFKc88B) is a discord server for `OpenRR` users and developers.
