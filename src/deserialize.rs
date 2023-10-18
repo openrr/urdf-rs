@@ -1,6 +1,5 @@
-use yaserde::xml;
-use yaserde::xml::attribute::OwnedAttribute;
-use yaserde::xml::namespace::Namespace;
+use xml::attribute::OwnedAttribute;
+use xml::namespace::Namespace;
 use yaserde::{YaDeserialize, YaSerialize};
 use yaserde_derive::{YaDeserialize, YaSerialize};
 
@@ -503,7 +502,7 @@ pub struct Dynamics {
 
 /// Top level struct to access urdf.
 #[derive(Debug, YaDeserialize, YaSerialize, Clone)]
-#[yaserde(rename = "robot")]
+#[yaserde(rename = "robot", namespace = "http://www.ros.org")]
 pub struct Robot {
     #[yaserde(attribute)]
     pub name: String,
