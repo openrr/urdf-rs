@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn deserialization() {
         let s = r#"
-            <robot name="robot">
+            <robot name="robot" xmlns="http://www.ros.org">
                 <material name="blue">
                   <color rgba="0.0 0.0 0.8 1.0"/>
                 </material>
