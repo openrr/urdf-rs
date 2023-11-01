@@ -12,23 +12,26 @@ pub fn convert_xacro_to_urdf_with_args<P>(filename: P, args: &[(String, String)]
 where
     P: AsRef<Path>,
 {
+    let filename = filename.as_ref();
     let output = Command::new("rosrun")
         .args(["xacro", "xacro", "--inorder"])
-        .arg(filename.as_ref())
+        .arg(filename)
         .args(args.iter().map(|(k, v)| format!("{}:={}", k, v)))
         .output()
         .or_else(|_| {
             Command::new("xacro")
-                .arg(filename.as_ref())
+                .arg(filename)
                 .args(args.iter().map(|(k, v)| format!("{}:={}", k, v)))
                 .output()
         })
-        .expect("failed to execute xacro. install by apt-get install ros-*-xacro");
+        .map_err(|e| {
+            format!("failed to execute xacro; consider installing xacro by `apt-get install ros-*-xacro`: {e}")
+        })?;
     if output.status.success() {
         Ok(String::from_utf8(output.stdout)?)
     } else {
         Err(ErrorKind::Command {
-            msg: "failed to xacro".to_owned(),
+            msg: format!("failed to xacro for {}", filename.display()),
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         }
@@ -43,7 +46,7 @@ where
     convert_xacro_to_urdf_with_args(filename, &[])
 }
 
-pub fn rospack_find(package: &str) -> Option<String> {
+pub fn rospack_find(package: &str) -> Result<String> {
     let output = Command::new("rospack")
         .arg("find")
         .arg(package)
@@ -55,25 +58,32 @@ pub fn rospack_find(package: &str) -> Option<String> {
                 .arg(package)
                 .output()
         })
-        .expect("rospack find failed");
+        .map_err(|e| {
+            format!("failed to execute neither rospack nor ros2; consider installing ROS or replacing 'package://' with path: {e}")
+        })?;
     if output.status.success() {
-        String::from_utf8(output.stdout)
-            .map(|string| string.trim().to_string())
-            .ok()
+        Ok(String::from_utf8(output.stdout)?.trim().to_string())
     } else {
-        None
+        Err(ErrorKind::Command {
+            msg: format!("failed to find ros package {package}"),
+            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        }
+        .into())
     }
 }
 
-pub fn expand_package_path<'a>(filename: &'a str, base_dir: Option<&Path>) -> Cow<'a, str> {
+// Note: We return Result here, although there is currently no branch that returns an error.
+// This is to avoid a breaking change when changing the error about package:// from panic to error.
+pub fn expand_package_path<'a>(filename: &'a str, base_dir: Option<&Path>) -> Result<Cow<'a, str>> {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new("^package://(\\w+)/").unwrap());
 
-    if filename.starts_with("package://") {
+    Ok(if filename.starts_with("package://") {
         RE.replace(filename, |ma: &regex::Captures<'_>| {
-            match rospack_find(&ma[1]) {
-                Some(found_path) => found_path + "/",
-                None => panic!("failed to find ros package {}", &ma[1]),
-            }
+            // TODO: It's better to propagate the error to the caller,
+            // but regex doesn't provide API like try_replace.
+            let found_path = rospack_find(&ma[1]).unwrap();
+            found_path + "/"
         })
     } else if filename.starts_with("https://") || filename.starts_with("http://") {
         filename.into()
@@ -89,22 +99,27 @@ pub fn expand_package_path<'a>(filename: &'a str, base_dir: Option<&Path>) -> Co
             .into()
     } else {
         filename.into()
-    }
+    })
 }
 
 pub fn read_urdf_or_xacro_with_args<P>(input_path: P, args: &[(String, String)]) -> Result<Robot>
 where
     P: AsRef<Path>,
 {
-    if let Some(ext) = input_path.as_ref().extension() {
+    let input_path = input_path.as_ref();
+    if let Some(ext) = input_path.extension() {
         if ext == "xacro" {
-            let urdf_utf = convert_xacro_to_urdf_with_args(input_path.as_ref(), args)?;
+            let urdf_utf = convert_xacro_to_urdf_with_args(input_path, args)?;
             read_from_string(&urdf_utf)
         } else {
-            read_file(&input_path)
+            read_file(input_path)
         }
     } else {
-        Err(ErrorKind::Other("failed to get extension".to_owned()).into())
+        Err(ErrorKind::Other(format!(
+            "failed to get extension from {}",
+            input_path.display()
+        ))
+        .into())
     }
 }
 
@@ -118,29 +133,29 @@ where
 #[test]
 fn it_works() {
     // test only for not packages
-    assert_eq!(expand_package_path("home/aaa", None), "home/aaa");
+    assert_eq!(expand_package_path("home/aaa", None).unwrap(), "home/aaa");
     assert_eq!(
-        expand_package_path("home/aaa.obj", Some(Path::new(""))),
+        expand_package_path("home/aaa.obj", Some(Path::new(""))).unwrap(),
         "home/aaa.obj"
     );
     assert_eq!(
-        expand_package_path("home/aaa.obj", Some(Path::new("/var"))),
+        expand_package_path("home/aaa.obj", Some(Path::new("/var"))).unwrap(),
         "/var/home/aaa.obj"
     );
     assert_eq!(
-        expand_package_path("/home/aaa.obj", Some(Path::new(""))),
+        expand_package_path("/home/aaa.obj", Some(Path::new(""))).unwrap(),
         "/home/aaa.obj"
     );
     assert_eq!(
-        expand_package_path("file:///home/aaa.obj", Some(Path::new("/var"))),
+        expand_package_path("file:///home/aaa.obj", Some(Path::new("/var"))).unwrap(),
         "/home/aaa.obj"
     );
     assert_eq!(
-        expand_package_path("http://aaa.obj", Some(Path::new("/var"))),
+        expand_package_path("http://aaa.obj", Some(Path::new("/var"))).unwrap(),
         "http://aaa.obj"
     );
     assert_eq!(
-        expand_package_path("https://aaa.obj", Some(Path::new("/var"))),
+        expand_package_path("https://aaa.obj", Some(Path::new("/var"))).unwrap(),
         "https://aaa.obj"
     );
     assert!(read_urdf_or_xacro("sample.urdf").is_ok());
