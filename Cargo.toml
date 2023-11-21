@@ -20,3 +20,13 @@ yaserde_derive = "0.8"
 
 [dev-dependencies]
 assert_approx_eq = "1"
+
+[lints]
+workspace = true
+
+[workspace.lints.rust]
+missing_debug_implementations = "warn"
+# missing_docs = "warn" # TODO
+rust_2018_idioms = "warn"
+single_use_lifetimes = "warn"
+unreachable_pub = "warn"
