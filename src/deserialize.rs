@@ -1,7 +1,6 @@
 use xml::attribute::OwnedAttribute;
 use xml::namespace::Namespace;
 use yaserde::{YaDeserialize, YaSerialize};
-use yaserde_derive::{YaDeserialize, YaSerialize};
 
 use std::io::{Read, Write};
 
