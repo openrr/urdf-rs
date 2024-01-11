@@ -97,6 +97,26 @@ mod tests {
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
+        // https://github.com/openrr/urdf-rs/issues/94
+        let xyz = &robot.links[0].visual[1].origin.xyz;
+        assert_approx_eq!(xyz[0], 0.1);
+        assert_approx_eq!(xyz[1], 0.2);
+        assert_approx_eq!(xyz[2], 0.3);
+        let rpy = &robot.links[0].visual[1].origin.rpy;
+        assert_approx_eq!(rpy[0], -0.1);
+        assert_approx_eq!(rpy[1], -0.2);
+        assert_approx_eq!(rpy[2], -0.3);
+
+        // https://github.com/openrr/urdf-rs/issues/95
+        assert!(robot.links[0].visual[0].material.is_some());
+        let mat = robot.links[0].visual[0].material.as_ref().unwrap();
+        assert_eq!(mat.name, "Cyan");
+        let rgba = mat.color.clone().unwrap().rgba;
+        assert_approx_eq!(rgba[0], 0.0);
+        assert_approx_eq!(rgba[1], 1.0);
+        assert_approx_eq!(rgba[2], 1.0);
+        assert_approx_eq!(rgba[3], 1.0);
+
         match *robot.links[0].visual[0].geometry {
             Geometry::Box { size } => {
                 assert_approx_eq!(size[0], 1.0f64);
@@ -188,10 +208,10 @@ mod tests {
                         </material>
                     </visual>
                     <visual>
-                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
                         <geometry>
                             <mesh filename="aa.dae" />
                         </geometry>
+                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
                     </visual>
                     <collision>
                         <origin xyz="0 0 0" rpy="0 0 0"/>

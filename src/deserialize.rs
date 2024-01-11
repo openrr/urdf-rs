@@ -289,12 +289,12 @@ pub struct Robot {
     #[serde(rename = "@name", default)]
     pub name: String,
 
-    #[serde(rename = "link", default)]
+    #[serde(rename = "link", default, skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<Link>,
 
-    #[serde(rename = "joint", default)]
+    #[serde(rename = "joint", default, skip_serializing_if = "Vec::is_empty")]
     pub joints: Vec<Joint>,
 
-    #[serde(rename = "material", default)]
+    #[serde(rename = "material", default, skip_serializing_if = "Vec::is_empty")]
     pub materials: Vec<Material>,
 }
