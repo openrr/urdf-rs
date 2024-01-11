@@ -70,6 +70,14 @@ pub struct GeometryTag {
     pub value: Geometry,
 }
 
+impl From<Geometry> for GeometryTag {
+    fn from(geom: Geometry) -> Self {
+        Self {
+            value: geom,
+        }
+    }
+}
+
 impl Deref for GeometryTag {
     type Target = Geometry;
 
