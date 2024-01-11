@@ -1,5 +1,7 @@
 use crate::deserialize::*;
 use crate::errors::*;
+use quick_xml::se::Serializer;
+use serde::Serialize;
 
 use std::path::Path;
 
@@ -73,7 +75,13 @@ pub fn read_from_string(string: &str) -> Result<Robot> {
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
-    quick_xml::se::to_string(robot).map_err(|e| UrdfError::new(e.to_string()))
+    let mut buffer = String::new();
+    let mut s = Serializer::new(&mut buffer);
+    s.indent(' ', 2);
+    robot
+        .serialize(s)
+        .map_err(|e| UrdfError::new(e.to_string()))?;
+    Ok(buffer)
 }
 
 #[cfg(test)]
