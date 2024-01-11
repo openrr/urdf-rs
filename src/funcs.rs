@@ -69,16 +69,11 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 /// ```
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
-    yaserde::de::from_str(string).map_err(UrdfError::new)
+    quick_xml::de::from_str(string).map_err(|e| UrdfError::new(e.to_string()))
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
-    let conf = yaserde::ser::Config {
-        perform_indent: true,
-        write_document_declaration: false,
-        indent_string: None,
-    };
-    yaserde::ser::to_string_with_config(robot, &conf).map_err(UrdfError::new)
+    quick_xml::se::to_string(robot).map_err(|e| UrdfError::new(e.to_string()))
 }
 
 #[cfg(test)]
@@ -102,7 +97,7 @@ mod tests {
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
-        match &robot.links[0].visual[0].geometry {
+        match *robot.links[0].visual[0].geometry {
             Geometry::Box { size } => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
@@ -110,7 +105,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match &robot.links[0].visual[1].geometry {
+        match *robot.links[0].visual[1].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
@@ -120,7 +115,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match &robot.links[0].visual[2].geometry {
+        match *robot.links[0].visual[2].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
@@ -132,7 +127,7 @@ mod tests {
         }
 
         assert_eq!(robot.links[0].collision.len(), 1);
-        match &robot.links[0].collision[0].geometry {
+        match *robot.links[0].collision[0].geometry {
             Geometry::Cylinder { radius, length } => {
                 assert_approx_eq!(radius, 1.0);
                 assert_approx_eq!(length, 0.5);
