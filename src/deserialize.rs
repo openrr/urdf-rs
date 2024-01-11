@@ -67,7 +67,7 @@ pub enum Geometry {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct GeometryTag {
     #[serde(rename = "$value")]
-    value: Geometry,
+    pub value: Geometry,
 }
 
 impl Deref for GeometryTag {
