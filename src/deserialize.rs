@@ -72,9 +72,7 @@ pub struct GeometryTag {
 
 impl From<Geometry> for GeometryTag {
     fn from(geom: Geometry) -> Self {
-        Self {
-            value: geom,
-        }
+        Self { value: geom }
     }
 }
 
