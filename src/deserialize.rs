@@ -58,8 +58,7 @@ pub enum Geometry {
     Mesh {
         #[serde(rename = "@filename")]
         filename: String,
-        #[serde(rename = "@scale")]
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "@scale", skip_serializing_if = "Option::is_none")]
         scale: Option<Vec3>,
     },
 }
@@ -106,16 +105,15 @@ pub struct Texture {
 pub struct Material {
     #[serde(rename = "@name")]
     pub name: String,
-    pub color: Option<Color>,
-    #[serde(rename = "@texture")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+    #[serde(rename = "@texture", skip_serializing_if = "Option::is_none")]
     pub texture: Option<Texture>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Visual {
-    #[serde(rename = "@name")]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@name", skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(default)]
     pub origin: Pose,
@@ -126,8 +124,7 @@ pub struct Visual {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Collision {
-    #[serde(rename = "@name")]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "@name", skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(default)]
     pub origin: Pose,
@@ -238,9 +235,9 @@ pub struct JointLimit {
 pub struct Mimic {
     #[serde(rename = "@joint")]
     pub joint: String,
-    #[serde(rename = "@multiplier")]
+    #[serde(rename = "@multiplier", skip_serializing_if = "Option::is_none")]
     pub multiplier: Option<f64>,
-    #[serde(rename = "@offset")]
+    #[serde(rename = "@offset", skip_serializing_if = "Option::is_none")]
     pub offset: Option<f64>,
 }
 
