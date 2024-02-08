@@ -225,7 +225,7 @@ pub struct JointLimit {
     pub lower: f64,
     #[serde(rename = "@upper", default)]
     pub upper: f64,
-    #[serde(rename = "@effort")]
+    #[serde(rename = "@effort", default)]
     pub effort: f64,
     #[serde(rename = "@velocity")]
     pub velocity: f64,
