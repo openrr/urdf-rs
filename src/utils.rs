@@ -2,11 +2,11 @@ use crate::deserialize::Robot;
 use crate::errors::*;
 use crate::funcs::*;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::borrow::Cow;
 use std::path::Path;
 use std::process::Command;
+use std::sync::LazyLock;
 
 pub fn convert_xacro_to_urdf_with_args<P>(filename: P, args: &[(String, String)]) -> Result<String>
 where
@@ -76,7 +76,7 @@ pub fn rospack_find(package: &str) -> Result<String> {
 // Note: We return Result here, although there is currently no branch that returns an error.
 // This is to avoid a breaking change when changing the error about package:// from panic to error.
 pub fn expand_package_path<'a>(filename: &'a str, base_dir: Option<&Path>) -> Result<Cow<'a, str>> {
-    static RE: Lazy<Regex> = Lazy::new(|| Regex::new("^package://(\\w+)/").unwrap());
+    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new("^package://(\\w+)/").unwrap());
 
     Ok(if filename.starts_with("package://") {
         RE.replace(filename, |ma: &regex::Captures<'_>| {
