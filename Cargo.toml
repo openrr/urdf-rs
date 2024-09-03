@@ -12,6 +12,7 @@ repository = "https://github.com/openrr/urdf-rs"
 # Note: serde is public dependency.
 [dependencies]
 regex = "1.4.2"
+RustyXML = "0.3.0"
 yaserde = "0.7.0"
 yaserde_derive = "0.7.0"
 thiserror = "1.0.7"
