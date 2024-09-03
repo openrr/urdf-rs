@@ -1,5 +1,6 @@
 use crate::deserialize::*;
 use crate::errors::*;
+use serde::Serialize;
 
 use std::path::Path;
 
@@ -116,13 +117,17 @@ pub fn read_from_string(string: &str) -> Result<Robot> {
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
-    serde_xml_rs::to_string(robot).map_err(UrdfError::new)
+    let mut buffer = String::new();
+    let mut s = quick_xml::se::Serializer::new(&mut buffer);
+    s.indent(' ', 2);
+    robot.serialize(s).map_err(UrdfError::new)?;
+    Ok(buffer)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{read_from_string, write_to_string};
-    use crate::{Geometry, Robot};
+    use crate::{Geometry, JointType, Robot};
     use assert_approx_eq::assert_approx_eq;
 
     fn check_robot(robot: &Robot) {
@@ -140,7 +145,27 @@ mod tests {
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
-        match &robot.links[0].visual[0].geometry {
+        // https://github.com/openrr/urdf-rs/issues/94
+        let xyz = &robot.links[0].visual[1].origin.xyz;
+        assert_approx_eq!(xyz[0], 0.1);
+        assert_approx_eq!(xyz[1], 0.2);
+        assert_approx_eq!(xyz[2], 0.3);
+        let rpy = &robot.links[0].visual[1].origin.rpy;
+        assert_approx_eq!(rpy[0], -0.1);
+        assert_approx_eq!(rpy[1], -0.2);
+        assert_approx_eq!(rpy[2], -0.3);
+
+        // https://github.com/openrr/urdf-rs/issues/95
+        assert!(robot.links[0].visual[0].material.is_some());
+        let mat = robot.links[0].visual[0].material.as_ref().unwrap();
+        assert_eq!(mat.name, "Cyan");
+        let rgba = mat.color.clone().unwrap().rgba;
+        assert_approx_eq!(rgba[0], 0.0);
+        assert_approx_eq!(rgba[1], 1.0);
+        assert_approx_eq!(rgba[2], 1.0);
+        assert_approx_eq!(rgba[3], 1.0);
+
+        match *robot.links[0].visual[0].geometry {
             Geometry::Box { size } => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
@@ -148,7 +173,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match &robot.links[0].visual[1].geometry {
+        match *robot.links[0].visual[1].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
@@ -158,7 +183,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match &robot.links[0].visual[2].geometry {
+        match *robot.links[0].visual[2].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
@@ -170,7 +195,7 @@ mod tests {
         }
 
         assert_eq!(robot.links[0].collision.len(), 1);
-        match &robot.links[0].collision[0].geometry {
+        match *robot.links[0].collision[0].geometry {
             Geometry::Cylinder { radius, length } => {
                 assert_approx_eq!(radius, 1.0);
                 assert_approx_eq!(length, 0.5);
@@ -179,8 +204,23 @@ mod tests {
         }
 
         assert_eq!(robot.materials.len(), 1);
+        let mat = &robot.materials[0];
+        assert_eq!(mat.name, "blue");
+        assert!(mat.color.is_some());
+        let rgba = mat.color.clone().unwrap().rgba;
+        assert_approx_eq!(rgba[0], 0.0);
+        assert_approx_eq!(rgba[1], 0.0);
+        assert_approx_eq!(rgba[2], 0.8);
+        assert_approx_eq!(rgba[3], 1.0);
 
         assert_eq!(robot.joints[0].name, "shoulder_pitch");
+        assert_eq!(robot.joints[0].parent.link, "shoulder1");
+        assert_eq!(robot.joints[0].child.link, "elbow1");
+        assert_eq!(robot.joints[0].joint_type, JointType::Revolute);
+        assert_approx_eq!(robot.joints[0].limit.upper, 1.0);
+        assert_approx_eq!(robot.joints[0].limit.lower, -1.0);
+        assert_approx_eq!(robot.joints[0].limit.effort, 0.0);
+        assert_approx_eq!(robot.joints[0].limit.velocity, 1.0);
         let xyz = &robot.joints[0].axis.xyz;
         assert_approx_eq!(xyz[0], 0.0f64);
         assert_approx_eq!(xyz[1], 1.0f64);
@@ -195,7 +235,7 @@ mod tests {
     #[test]
     fn deserialization() {
         let s = r#"
-            <robot name="robot">
+            <robot name="robot" xmlns="http://www.ros.org">
                 <material name="blue">
                   <color rgba="0.0 0.0 0.8 1.0"/>
                 </material>
@@ -216,10 +256,10 @@ mod tests {
                         </material>
                     </visual>
                     <visual>
-                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
                         <geometry>
                             <mesh filename="aa.dae" />
                         </geometry>
+                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
                     </visual>
                     <collision>
                         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -253,12 +293,11 @@ mod tests {
             </robot>
         "#;
         let robot = read_from_string(s).unwrap();
-
         check_robot(&robot);
 
         // Loopback test
         let s = write_to_string(&robot).unwrap();
-
+        assert!(!s.contains("Robot"), "{s}"); // https://github.com/openrr/urdf-rs/issues/80
         let robot = read_from_string(&s).unwrap();
         check_robot(&robot);
     }
