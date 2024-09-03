@@ -443,13 +443,9 @@ pub enum JointType {
 
 #[derive(Debug, YaDeserialize, YaSerialize, Default, Clone)]
 pub struct JointLimit {
-    #[yaserde(attribute)]
     pub lower: f64,
-    #[yaserde(attribute)]
     pub upper: f64,
-    #[yaserde(attribute)]
     pub effort: f64,
-    #[yaserde(attribute)]
     pub velocity: f64,
 }
 

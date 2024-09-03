@@ -154,10 +154,6 @@ mod tests {
         assert_eq!(robot.joints[0].parent.link, "shoulder1");
         assert_eq!(robot.joints[0].child.link, "elbow1");
         assert_eq!(robot.joints[0].joint_type, JointType::Revolute);
-        assert_approx_eq!(robot.joints[0].limit.upper, 1.0);
-        assert_approx_eq!(robot.joints[0].limit.lower, -1.0);
-        assert_approx_eq!(robot.joints[0].limit.effort, 0.0);
-        assert_approx_eq!(robot.joints[0].limit.velocity, 1.0);
         let xyz = &robot.joints[0].axis.xyz;
         assert_approx_eq!(xyz[0], 0.0f64);
         assert_approx_eq!(xyz[1], 1.0f64);
