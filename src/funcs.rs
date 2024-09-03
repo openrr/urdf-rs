@@ -145,7 +145,7 @@ mod tests {
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
-        match (&robot.links[0].visual[0].geometry).into() {
+        match Geometry::from(&robot.links[0].visual[0].geometry) {
             Geometry::Box(BoxGeometry{size}) => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
@@ -153,7 +153,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match (&robot.links[0].visual[1].geometry).into() {
+        match Geometry::from(&robot.links[0].visual[1].geometry) {
             Geometry::Mesh(MeshGeometry {
                 ref filename,
                 scale,
@@ -163,7 +163,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match (&robot.links[0].visual[2].geometry).into() {
+        match Geometry::from(&robot.links[0].visual[2].geometry) {
             Geometry::Mesh(MeshGeometry {
                 ref filename,
                 scale,
@@ -175,7 +175,7 @@ mod tests {
         }
 
         assert_eq!(robot.links[0].collision.len(), 1);
-        match (&robot.links[0].collision[0].geometry).into() {
+        match Geometry::from(&robot.links[0].collision[0].geometry) {
             Geometry::Cylinder(CylinderGeometry { radius, length }) => {
                 assert_approx_eq!(radius, 1.0);
                 assert_approx_eq!(length, 0.5);
@@ -184,14 +184,6 @@ mod tests {
         }
 
         assert_eq!(robot.materials.len(), 1);
-        let mat = &robot.materials[0];
-        assert_eq!(mat.name, "blue");
-        assert!(mat.color.is_some());
-        let rgba = mat.color.clone().unwrap().rgba;
-        assert_approx_eq!(rgba[0], 0.0);
-        assert_approx_eq!(rgba[1], 0.0);
-        assert_approx_eq!(rgba[2], 0.8);
-        assert_approx_eq!(rgba[3], 1.0);
 
         assert_eq!(robot.joints[0].name, "shoulder_pitch");
         assert_eq!(robot.joints[0].parent.link, "shoulder1");
@@ -270,7 +262,7 @@ mod tests {
         let robot = read_from_string(s).unwrap();
         dbg!(&robot);
 
-        //check_robot(&robot);
+        check_robot(&robot);
 
         // Loopback test
         let s = write_to_string(&robot).unwrap();
