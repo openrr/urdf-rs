@@ -33,33 +33,25 @@ pub struct Inertial {
     pub inertia: Inertia,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Geometry {
     Box {
-        #[serde(rename(serialize = "@size"))]
         size: Vec3,
     },
     Cylinder {
-        #[serde(rename(serialize = "@radius"))]
         radius: f64,
-        #[serde(rename(serialize = "@length"))]
         length: f64,
     },
     Capsule {
-        #[serde(rename(serialize = "@radius"))]
         radius: f64,
-        #[serde(rename(serialize = "@length"))]
         length: f64,
     },
     Sphere {
-        #[serde(rename(serialize = "@radius"))]
         radius: f64,
     },
     Mesh {
-        #[serde(rename(serialize = "@filename"))]
         filename: String,
-        #[serde(rename(serialize = "@scale"), skip_serializing_if = "Option::is_none")]
         scale: Option<Vec3>,
     },
 }
@@ -72,40 +64,58 @@ impl Default for Geometry {
     }
 }
 
-#[derive(Debug, Default, Serialize, Clone)]
-pub struct GeometryTag {
-    #[serde(rename(serialize = "$value"))]
-    pub value: Geometry,
-}
-
-impl From<Geometry> for GeometryTag {
-    fn from(geom: Geometry) -> Self {
-        Self { value: geom }
-    }
-}
-
-impl Deref for GeometryTag {
-    type Target = Geometry;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl DerefMut for GeometryTag {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<'de> Deserialize<'de> for GeometryTag {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+impl Serialize for Geometry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: serde::Deserializer<'de>,
+        S: serde::Serializer,
     {
-        Ok(Self {
-            value: Geometry::deserialize(deserializer)?,
-        })
+        // Workaround for https://github.com/openrr/urdf-rs/pull/107#discussion_r1741875356.
+        #[derive(Serialize)]
+        #[serde(rename_all = "snake_case")]
+        enum GeometryRepr<'a> {
+            Box {
+                #[serde(rename(serialize = "@size"))]
+                size: Vec3,
+            },
+            Cylinder {
+                #[serde(rename(serialize = "@radius"))]
+                radius: f64,
+                #[serde(rename(serialize = "@length"))]
+                length: f64,
+            },
+            Capsule {
+                #[serde(rename(serialize = "@radius"))]
+                radius: f64,
+                #[serde(rename(serialize = "@length"))]
+                length: f64,
+            },
+            Sphere {
+                #[serde(rename(serialize = "@radius"))]
+                radius: f64,
+            },
+            Mesh {
+                #[serde(rename(serialize = "@filename"))]
+                filename: &'a str,
+                #[serde(rename(serialize = "@scale"), skip_serializing_if = "Option::is_none")]
+                scale: Option<Vec3>,
+            },
+        }
+        #[derive(Serialize)]
+        struct GeometryTag<'a> {
+            #[serde(rename(serialize = "$value"))]
+            value: GeometryRepr<'a>,
+        }
+        let value = match *self {
+            Self::Box { size } => GeometryRepr::Box { size },
+            Self::Cylinder { radius, length } => GeometryRepr::Cylinder { radius, length },
+            Self::Capsule { radius, length } => GeometryRepr::Capsule { radius, length },
+            Self::Sphere { radius } => GeometryRepr::Sphere { radius },
+            Self::Mesh {
+                ref filename,
+                scale,
+            } => GeometryRepr::Mesh { filename, scale },
+        };
+        GeometryTag::serialize(&GeometryTag { value }, serializer)
     }
 }
 
@@ -140,7 +150,7 @@ pub struct Visual {
     pub name: Option<String>,
     #[serde(default)]
     pub origin: Pose,
-    pub geometry: GeometryTag,
+    pub geometry: Geometry,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub material: Option<Material>,
 }
@@ -151,7 +161,7 @@ pub struct Collision {
     pub name: Option<String>,
     #[serde(default)]
     pub origin: Pose,
-    pub geometry: GeometryTag,
+    pub geometry: Geometry,
 }
 
 /// Urdf Link element

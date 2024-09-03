@@ -165,7 +165,7 @@ mod tests {
         assert_approx_eq!(rgba[2], 1.0);
         assert_approx_eq!(rgba[3], 1.0);
 
-        match *robot.links[0].visual[0].geometry {
+        match &robot.links[0].visual[0].geometry {
             Geometry::Box { size } => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
@@ -173,7 +173,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match *robot.links[0].visual[1].geometry {
+        match &robot.links[0].visual[1].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
@@ -183,7 +183,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match *robot.links[0].visual[2].geometry {
+        match &robot.links[0].visual[2].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
@@ -195,7 +195,7 @@ mod tests {
         }
 
         assert_eq!(robot.links[0].collision.len(), 1);
-        match *robot.links[0].collision[0].geometry {
+        match &robot.links[0].collision[0].geometry {
             Geometry::Cylinder { radius, length } => {
                 assert_approx_eq!(radius, 1.0);
                 assert_approx_eq!(length, 0.5);
