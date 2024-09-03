@@ -80,6 +80,7 @@ impl YaSerialize for Geometry {
             .map_err(|e| e.to_string())?;
         match self {
             Geometry::Box { size } => {
+                dbg!(&format!("{:.1} {:.1} {:.1}", size[0], size[1], size[2]));
                 serializer
                     .write(
                         xml::writer::XmlEvent::start_element("box")
