@@ -48,19 +48,6 @@ impl From<&str> for UrdfError {
     }
 }
 
-impl From<String> for UrdfError {
-    fn from(err: String) -> UrdfError {
-        ErrorKind::Other(err).into()
-    }
-}
-
-// TODO(luca) why do we need this?
-impl From<String> for ErrorKind {
-    fn from(err: String) -> ErrorKind {
-        ErrorKind::Other(err)
-    }
-}
-
 impl From<std::string::FromUtf8Error> for UrdfError {
     fn from(err: std::string::FromUtf8Error) -> UrdfError {
         ErrorKind::Other(err.to_string()).into()

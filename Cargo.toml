@@ -14,8 +14,6 @@ repository = "https://github.com/openrr/urdf-rs"
 regex = "1.4.2"
 RustyXML = "0.3.0"
 serde = { version = "1.0.118", features = ["derive"] }
-yaserde = "0.7.0"
-yaserde_derive = "0.7.0"
 serde-xml-rs = "0.6.0"
 thiserror = "1.0.7"
 
