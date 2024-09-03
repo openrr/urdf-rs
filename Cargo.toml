@@ -9,7 +9,7 @@ keywords = ["robotics", "robot", "ros", "urdf"]
 categories = ["data-structures", "parsing"]
 repository = "https://github.com/openrr/urdf-rs"
 
-# Note: yaserde is public dependency.
+# Note: serde is public dependency.
 [dependencies]
 regex = "1.4.2"
 yaserde = "0.7.0"
