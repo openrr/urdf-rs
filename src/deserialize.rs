@@ -310,18 +310,19 @@ pub struct Pose {
     pub rpy: Vec3,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct LinkName {
     #[serde(rename(serialize = "@link"))]
     pub link: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum JointType {
     Revolute,
     Continuous,
     Prismatic,
+    #[default]
     Fixed,
     Floating,
     Planar,
