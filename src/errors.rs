@@ -17,6 +17,8 @@ pub(crate) enum ErrorKind {
     #[error(transparent)]
     File(#[from] std::io::Error),
     #[error(transparent)]
+    Xml(#[from] serde_xml_rs::Error),
+    #[error(transparent)]
     RustyXml(#[from] xml::BuilderError),
     #[error("command error {}\n--- stdout\n{}\n--- stderr\n{}", .msg, .stdout, .stderr)]
     Command {
