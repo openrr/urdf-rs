@@ -399,6 +399,25 @@ pub struct Dynamics {
 }
 
 /// Top level struct to access urdf.
+///
+/// # Compatibility Note
+///
+/// This type and its descendant types implement `serde::Serialize` and
+/// `serde::Deserialize`. However, because XML serialization and deserialization
+/// using `serde` require embedding special markers to distinguish between
+/// attributes and elements, there is no stability guarantee as to exactly which
+/// `serde` representation these types will be serialized with.
+///
+/// In other words, serialization and deserialization without going through
+/// functions provided by this crate such as [`read_from_string`](crate::read_from_string)
+/// or [`write_to_string`](crate::write_to_string) may not work as expected at all
+/// or in the future.
+///
+/// This is intentional to remove the need to create semver-incompatible
+/// release of this crate every time an XML-related crate, which frequently
+/// creates semver-incompatible releases is updated. And it also allows
+/// improving our situation of depending on multiple XML-related crates without
+/// a change considered breaking.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename = "robot")]
 pub struct Robot {
