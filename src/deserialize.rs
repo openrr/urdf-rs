@@ -412,11 +412,33 @@ pub struct Joint {
     #[serde(default)]
     pub limit: JointLimit,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub calibration: Option<Calibration>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dynamics: Option<Dynamics>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mimic: Option<Mimic>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub safety_controller: Option<SafetyController>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+pub struct Calibration {
+    // `default` is needed when using `deserialize_with`: https://github.com/serde-rs/serde/issues/723#issuecomment-368135287
+    #[serde(
+        rename(serialize = "@rising"),
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "de_opt_f64")]
+    pub rising: Option<f64>,
+    // `default` is needed when using `deserialize_with`: https://github.com/serde-rs/serde/issues/723#issuecomment-368135287
+    #[serde(
+        rename(serialize = "@falling"),
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "de_opt_f64")]
+    pub falling: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
