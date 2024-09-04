@@ -1,7 +1,51 @@
 use crate::deserialize::*;
 use crate::errors::*;
+use serde::Serialize;
 
+use std::mem;
 use std::path::Path;
+
+/// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
+fn sort_link_joint(string: &str) -> Result<String> {
+    let mut e: xml::Element = string.parse().map_err(UrdfError::new)?;
+    let mut links = Vec::new();
+    let mut joints = Vec::new();
+    let mut materials = Vec::new();
+    for c in mem::take(&mut e.children) {
+        if let xml::Xml::ElementNode(xml_elm) = c {
+            if xml_elm.name == "link" {
+                links.push(sort_visual_collision(xml_elm));
+            } else if xml_elm.name == "joint" {
+                joints.push(xml::Xml::ElementNode(xml_elm));
+            } else if xml_elm.name == "material" {
+                materials.push(xml::Xml::ElementNode(xml_elm));
+            }
+        }
+    }
+    let mut new_elm = e;
+    links.extend(joints);
+    links.extend(materials);
+    new_elm.children = links;
+    Ok(format!("{new_elm}"))
+}
+
+fn sort_visual_collision(mut elm: xml::Element) -> xml::Xml {
+    let mut visuals = Vec::new();
+    let mut collisions = Vec::new();
+    for c in mem::take(&mut elm.children) {
+        if let xml::Xml::ElementNode(xml_elm) = c {
+            if xml_elm.name == "visual" || xml_elm.name == "inertial" {
+                visuals.push(xml::Xml::ElementNode(xml_elm));
+            } else if xml_elm.name == "collision" {
+                collisions.push(xml::Xml::ElementNode(xml_elm));
+            }
+        }
+    }
+    let mut new_elm = elm;
+    visuals.extend(collisions);
+    new_elm.children = visuals;
+    xml::Xml::ElementNode(new_elm)
+}
 
 /// Read urdf file and create Robot instance
 ///
@@ -69,16 +113,16 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 /// ```
 
 pub fn read_from_string(string: &str) -> Result<Robot> {
-    yaserde::de::from_str(string).map_err(UrdfError::new)
+    let sorted_string = sort_link_joint(string)?;
+    serde_xml_rs::from_str(&sorted_string).map_err(UrdfError::new)
 }
 
 pub fn write_to_string(robot: &Robot) -> Result<String> {
-    let conf = yaserde::ser::Config {
-        perform_indent: true,
-        write_document_declaration: false,
-        indent_string: None,
-    };
-    yaserde::ser::to_string_with_config(robot, &conf).map_err(UrdfError::new)
+    let mut buffer = String::new();
+    let mut s = quick_xml::se::Serializer::new(&mut buffer);
+    s.indent(' ', 2);
+    robot.serialize(s).map_err(UrdfError::new)?;
+    Ok(buffer)
 }
 
 #[cfg(test)]
@@ -101,6 +145,26 @@ mod tests {
         assert_approx_eq!(rpy[0], -0.1);
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
+
+        // https://github.com/openrr/urdf-rs/issues/94
+        let xyz = &robot.links[0].visual[1].origin.xyz;
+        assert_approx_eq!(xyz[0], 0.1);
+        assert_approx_eq!(xyz[1], 0.2);
+        assert_approx_eq!(xyz[2], 0.3);
+        let rpy = &robot.links[0].visual[1].origin.rpy;
+        assert_approx_eq!(rpy[0], -0.1);
+        assert_approx_eq!(rpy[1], -0.2);
+        assert_approx_eq!(rpy[2], -0.3);
+
+        // https://github.com/openrr/urdf-rs/issues/95
+        assert!(robot.links[0].visual[0].material.is_some());
+        let mat = robot.links[0].visual[0].material.as_ref().unwrap();
+        assert_eq!(mat.name, "Cyan");
+        let rgba = mat.color.clone().unwrap().rgba;
+        assert_approx_eq!(rgba[0], 0.0);
+        assert_approx_eq!(rgba[1], 1.0);
+        assert_approx_eq!(rgba[2], 1.0);
+        assert_approx_eq!(rgba[3], 1.0);
 
         match &robot.links[0].visual[0].geometry {
             Geometry::Box { size } => {
@@ -193,10 +257,10 @@ mod tests {
                         </material>
                     </visual>
                     <visual>
-                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
                         <geometry>
                             <mesh filename="aa.dae" />
                         </geometry>
+                        <origin xyz="0.1 0.2 0.3" rpy="-0.1 -0.2  -0.3" />
                     </visual>
                     <collision>
                         <origin xyz="0 0 0" rpy="0 0 0"/>

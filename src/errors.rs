@@ -16,6 +16,12 @@ pub struct UrdfError(#[from] ErrorKind);
 pub(crate) enum ErrorKind {
     #[error(transparent)]
     File(#[from] std::io::Error),
+    #[error(transparent)]
+    Xml(#[from] serde_xml_rs::Error),
+    #[error(transparent)]
+    RustyXml(#[from] xml::BuilderError),
+    #[error(transparent)]
+    QuickXml(#[from] quick_xml::DeError),
     #[error("command error {}\n--- stdout\n{}\n--- stderr\n{}", .msg, .stdout, .stderr)]
     Command {
         msg: String,
@@ -47,13 +53,6 @@ impl From<&str> for UrdfError {
 impl From<String> for UrdfError {
     fn from(err: String) -> UrdfError {
         ErrorKind::Other(err).into()
-    }
-}
-
-// TODO(luca) why do we need this?
-impl From<String> for ErrorKind {
-    fn from(err: String) -> ErrorKind {
-        ErrorKind::Other(err)
     }
 }
 
