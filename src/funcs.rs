@@ -133,32 +133,59 @@ mod tests {
 
     fn check_robot(robot: &Robot) {
         assert_eq!(robot.name, "robot");
+
+        // <link>
         assert_eq!(robot.links.len(), 3);
-        assert_eq!(robot.joints.len(), 2);
-        assert_eq!(robot.links[0].visual.len(), 3);
-        assert_eq!(robot.links[0].inertial.mass.value, 1.0);
-        let xyz = &robot.links[0].visual[0].origin.xyz;
+        let link = &robot.links[0];
+        assert_eq!(link.name, "shoulder1");
+        let xyz = link.inertial.origin.xyz;
+        assert_approx_eq!(xyz[0], 0.0);
+        assert_approx_eq!(xyz[1], 0.0);
+        assert_approx_eq!(xyz[2], 0.5);
+        let rpy = link.inertial.origin.rpy;
+        assert_approx_eq!(rpy[0], 0.0);
+        assert_approx_eq!(rpy[1], 0.0);
+        assert_approx_eq!(rpy[2], 0.0);
+        assert_approx_eq!(link.inertial.mass.value, 1.0);
+        assert_approx_eq!(link.inertial.inertia.ixx, 100.0);
+        assert_approx_eq!(link.inertial.inertia.ixy, 0.0);
+        assert_approx_eq!(link.inertial.inertia.ixz, 0.0);
+        assert_approx_eq!(link.inertial.inertia.iyy, 100.0);
+        assert_approx_eq!(link.inertial.inertia.ixz, 0.0);
+        assert_approx_eq!(link.inertial.inertia.izz, 100.0);
+
+        assert_eq!(link.visual.len(), 3);
+        let xyz = &link.visual[0].origin.xyz;
         assert_approx_eq!(xyz[0], 0.1);
         assert_approx_eq!(xyz[1], 0.2);
         assert_approx_eq!(xyz[2], 0.3);
-        let rpy = &robot.links[0].visual[0].origin.rpy;
+        let rpy = &link.visual[0].origin.rpy;
         assert_approx_eq!(rpy[0], -0.1);
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
         // https://github.com/openrr/urdf-rs/issues/94
-        let xyz = &robot.links[0].visual[1].origin.xyz;
+        let xyz = &link.visual[1].origin.xyz;
         assert_approx_eq!(xyz[0], 0.1);
         assert_approx_eq!(xyz[1], 0.2);
         assert_approx_eq!(xyz[2], 0.3);
-        let rpy = &robot.links[0].visual[1].origin.rpy;
+        let rpy = &link.visual[1].origin.rpy;
+        assert_approx_eq!(rpy[0], -0.1);
+        assert_approx_eq!(rpy[1], -0.2);
+        assert_approx_eq!(rpy[2], -0.3);
+
+        let xyz = &link.visual[2].origin.xyz;
+        assert_approx_eq!(xyz[0], 0.1);
+        assert_approx_eq!(xyz[1], 0.2);
+        assert_approx_eq!(xyz[2], 0.3);
+        let rpy = &link.visual[2].origin.rpy;
         assert_approx_eq!(rpy[0], -0.1);
         assert_approx_eq!(rpy[1], -0.2);
         assert_approx_eq!(rpy[2], -0.3);
 
         // https://github.com/openrr/urdf-rs/issues/95
-        assert!(robot.links[0].visual[0].material.is_some());
-        let mat = robot.links[0].visual[0].material.as_ref().unwrap();
+        assert!(link.visual[0].material.is_some());
+        let mat = link.visual[0].material.as_ref().unwrap();
         assert_eq!(mat.name, "Cyan");
         let rgba = mat.color.clone().unwrap().rgba;
         assert_approx_eq!(rgba[0], 0.0);
@@ -166,7 +193,7 @@ mod tests {
         assert_approx_eq!(rgba[2], 1.0);
         assert_approx_eq!(rgba[3], 1.0);
 
-        match &robot.links[0].visual[0].geometry {
+        match &link.visual[0].geometry {
             Geometry::Box { size } => {
                 assert_approx_eq!(size[0], 1.0f64);
                 assert_approx_eq!(size[1], 2.0f64);
@@ -174,7 +201,7 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match &robot.links[0].visual[1].geometry {
+        match &link.visual[1].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
@@ -184,19 +211,30 @@ mod tests {
             }
             _ => panic!("geometry error"),
         }
-        match &robot.links[0].visual[2].geometry {
+        match &link.visual[2].geometry {
             Geometry::Mesh {
                 ref filename,
                 scale,
             } => {
                 assert_eq!(filename, "bbb.dae");
-                assert!(scale.is_some());
+                let scale = scale.as_ref().unwrap();
+                assert_approx_eq!(scale[0], 2.0);
+                assert_approx_eq!(scale[1], 3.0);
+                assert_approx_eq!(scale[2], 4.0);
             }
             _ => panic!("geometry error"),
         }
 
-        assert_eq!(robot.links[0].collision.len(), 1);
-        match &robot.links[0].collision[0].geometry {
+        assert_eq!(link.collision.len(), 1);
+        let xyz = &link.collision[0].origin.xyz;
+        assert_approx_eq!(xyz[0], 0.0);
+        assert_approx_eq!(xyz[1], 0.0);
+        assert_approx_eq!(xyz[2], 0.0);
+        let rpy = &link.collision[0].origin.rpy;
+        assert_approx_eq!(rpy[0], 0.0);
+        assert_approx_eq!(rpy[1], 0.0);
+        assert_approx_eq!(rpy[2], 0.0);
+        match &link.collision[0].geometry {
             Geometry::Cylinder { radius, length } => {
                 assert_approx_eq!(radius, 1.0);
                 assert_approx_eq!(length, 0.5);
@@ -204,6 +242,10 @@ mod tests {
             _ => panic!("geometry error"),
         }
 
+        assert_eq!(robot.links[1].name, "elbow1");
+        assert_eq!(robot.links[2].name, "wrist1");
+
+        // <material>
         assert_eq!(robot.materials.len(), 1);
         let mat = &robot.materials[0];
         assert_eq!(mat.name, "blue");
@@ -214,23 +256,56 @@ mod tests {
         assert_approx_eq!(rgba[2], 0.8);
         assert_approx_eq!(rgba[3], 1.0);
 
-        assert_eq!(robot.joints[0].name, "shoulder_pitch");
-        assert_eq!(robot.joints[0].parent.link, "shoulder1");
-        assert_eq!(robot.joints[0].child.link, "elbow1");
-        assert_eq!(robot.joints[0].joint_type, JointType::Revolute);
-        assert_approx_eq!(robot.joints[0].limit.upper, 1.0);
-        assert_approx_eq!(robot.joints[0].limit.lower, -1.0);
-        assert_approx_eq!(robot.joints[0].limit.effort, 0.0);
-        assert_approx_eq!(robot.joints[0].limit.velocity, 1.0);
-        let xyz = &robot.joints[0].axis.xyz;
-        assert_approx_eq!(xyz[0], 0.0f64);
-        assert_approx_eq!(xyz[1], 1.0f64);
-        assert_approx_eq!(xyz[2], -1.0f64);
-        let xyz = &robot.joints[0].axis.xyz;
-        //"0 1 -1"
+        // <joint>
+        assert_eq!(robot.joints.len(), 2);
+        let joint = &robot.joints[0];
+        assert_eq!(joint.name, "shoulder_pitch");
+        assert_eq!(joint.parent.link, "shoulder1");
+        assert_eq!(joint.child.link, "elbow1");
+        assert_eq!(joint.joint_type, JointType::Revolute);
+        assert_approx_eq!(joint.limit.upper, 1.0);
+        assert_approx_eq!(joint.limit.lower, -1.0);
+        assert_approx_eq!(joint.limit.effort, 0.0);
+        assert_approx_eq!(joint.limit.velocity, 1.0);
+        assert_approx_eq!(joint.dynamics.as_ref().unwrap().damping, 0.0);
+        assert_approx_eq!(joint.dynamics.as_ref().unwrap().friction, 0.0);
+        assert_eq!(joint.mimic.as_ref().unwrap().joint, "elbow1");
+        assert_approx_eq!(joint.safety_controller.as_ref().unwrap().k_velocity, 10.0);
+        assert!(joint.mimic.as_ref().unwrap().multiplier.is_none());
+        assert!(joint.mimic.as_ref().unwrap().offset.is_none());
+        let xyz = &joint.axis.xyz;
         assert_approx_eq!(xyz[0], 0.0);
         assert_approx_eq!(xyz[1], 1.0);
         assert_approx_eq!(xyz[2], -1.0);
+
+        let joint = &robot.joints[1];
+        assert_eq!(joint.name, "shoulder_pitch");
+        assert_eq!(joint.parent.link, "elbow1");
+        assert_eq!(joint.child.link, "wrist1");
+        assert_eq!(joint.joint_type, JointType::Revolute);
+        assert_approx_eq!(joint.limit.upper, 1.0);
+        assert_approx_eq!(joint.limit.lower, -2.0);
+        assert_approx_eq!(joint.limit.effort, 0.0);
+        assert_approx_eq!(joint.limit.velocity, 1.0);
+        assert_approx_eq!(joint.dynamics.as_ref().unwrap().damping, 10.0);
+        assert_approx_eq!(joint.dynamics.as_ref().unwrap().friction, 1.0);
+        assert_eq!(joint.mimic.as_ref().unwrap().joint, "shoulder1");
+        assert_approx_eq!(joint.mimic.as_ref().unwrap().multiplier.unwrap(), 5.0);
+        assert_approx_eq!(joint.mimic.as_ref().unwrap().offset.unwrap(), 1.0);
+        assert_approx_eq!(joint.safety_controller.as_ref().unwrap().k_position, 10.0);
+        assert_approx_eq!(joint.safety_controller.as_ref().unwrap().k_velocity, 1.0);
+        assert_approx_eq!(
+            joint.safety_controller.as_ref().unwrap().soft_lower_limit,
+            -0.5
+        );
+        assert_approx_eq!(
+            joint.safety_controller.as_ref().unwrap().soft_upper_limit,
+            1.0
+        );
+        let xyz = &joint.axis.xyz;
+        assert_approx_eq!(xyz[0], 0.0);
+        assert_approx_eq!(xyz[1], 1.0);
+        assert_approx_eq!(xyz[2], 0.0);
     }
 
     #[test]
@@ -280,6 +355,9 @@ mod tests {
                     <parent link="shoulder1" />
                     <child link="elbow1" />
                     <axis xyz="0 1 -1" />
+                    <dynamics />
+                    <mimic joint="elbow1" />
+                    <safety_controller k_velocity="10" />
                     <limit lower="-1" upper="1.0" effort="0" velocity="1.0"/>
                 </joint>
                 <link name="elbow1" />
@@ -288,8 +366,11 @@ mod tests {
                     <origin xyz="0.0 0.0 0.0" />
                     <parent link="elbow1" />
                     <child link="wrist1" />
-                    <axis xyz="0 1 0" />
-                    <limit lower="-2" upper="1.0" effort="0" velocity="1.0"/>
+                    <axis xyz=" 0 1 0 " />
+                    <dynamics damping="10.0" friction="1" />
+                    <mimic joint="shoulder1" offset="1" multiplier="5" />
+                    <safety_controller k_position="10" k_velocity="1" soft_lower_limit="-0.5" soft_upper_limit="1" />
+                    <limit lower=" -2" upper="1.0 " effort="0 " velocity=" 1.0 "/>
                 </joint>
             </robot>
         "#;

@@ -1,27 +1,34 @@
 use serde::de::Visitor;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct Mass {
     #[serde(rename(serialize = "@value"))]
+    #[serde(deserialize_with = "de_f64")]
     pub value: f64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct Inertia {
     #[serde(rename(serialize = "@ixx"))]
+    #[serde(deserialize_with = "de_f64")]
     pub ixx: f64,
     #[serde(rename(serialize = "@ixy"))]
+    #[serde(deserialize_with = "de_f64")]
     pub ixy: f64,
     #[serde(rename(serialize = "@ixz"))]
+    #[serde(deserialize_with = "de_f64")]
     pub ixz: f64,
     #[serde(rename(serialize = "@iyy"))]
+    #[serde(deserialize_with = "de_f64")]
     pub iyy: f64,
     #[serde(rename(serialize = "@iyz"))]
+    #[serde(deserialize_with = "de_f64")]
     pub iyz: f64,
     #[serde(rename(serialize = "@izz"))]
+    #[serde(deserialize_with = "de_f64")]
     pub izz: f64,
 }
 
@@ -40,14 +47,19 @@ pub enum Geometry {
         size: Vec3,
     },
     Cylinder {
+        #[serde(deserialize_with = "de_f64")]
         radius: f64,
+        #[serde(deserialize_with = "de_f64")]
         length: f64,
     },
     Capsule {
+        #[serde(deserialize_with = "de_f64")]
         radius: f64,
+        #[serde(deserialize_with = "de_f64")]
         length: f64,
     },
     Sphere {
+        #[serde(deserialize_with = "de_f64")]
         radius: f64,
     },
     Mesh {
@@ -332,12 +344,16 @@ pub enum JointType {
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct JointLimit {
     #[serde(rename(serialize = "@lower"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub lower: f64,
     #[serde(rename(serialize = "@upper"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub upper: f64,
     #[serde(rename(serialize = "@effort"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub effort: f64,
     #[serde(rename(serialize = "@velocity"))]
+    #[serde(deserialize_with = "de_f64")]
     pub velocity: f64,
 }
 
@@ -345,24 +361,37 @@ pub struct JointLimit {
 pub struct Mimic {
     #[serde(rename(serialize = "@joint"))]
     pub joint: String,
+    // `default` is needed when using `deserialize_with`: https://github.com/serde-rs/serde/issues/723#issuecomment-368135287
     #[serde(
         rename(serialize = "@multiplier"),
+        default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "de_opt_f64")]
     pub multiplier: Option<f64>,
-    #[serde(rename(serialize = "@offset"), skip_serializing_if = "Option::is_none")]
+    // `default` is needed when using `deserialize_with`: https://github.com/serde-rs/serde/issues/723#issuecomment-368135287
+    #[serde(
+        rename(serialize = "@offset"),
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "de_opt_f64")]
     pub offset: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct SafetyController {
     #[serde(rename(serialize = "@soft_lower_limit"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub soft_lower_limit: f64,
     #[serde(rename(serialize = "@soft_upper_limit"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub soft_upper_limit: f64,
     #[serde(rename(serialize = "@k_position"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub k_position: f64,
     #[serde(rename(serialize = "@k_velocity"))]
+    #[serde(deserialize_with = "de_f64")]
     pub k_velocity: f64,
 }
 
@@ -393,8 +422,10 @@ pub struct Joint {
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct Dynamics {
     #[serde(rename(serialize = "@damping"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub damping: f64,
     #[serde(rename(serialize = "@friction"), default)]
+    #[serde(deserialize_with = "de_f64")]
     pub friction: f64,
 }
 
@@ -413,4 +444,56 @@ pub struct Robot {
 
     #[serde(rename = "material", default, skip_serializing_if = "Vec::is_empty")]
     pub materials: Vec<Material>,
+}
+
+fn de_f64<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_str(F64Visitor)
+}
+fn de_opt_f64<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_option(OptF64Visitor)
+}
+
+struct F64Visitor;
+impl Visitor<'_> for F64Visitor {
+    type Value = f64;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a string containing one floating point value")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        let res = v.trim().parse::<f64>().map_err(E::custom)?;
+        Ok(res)
+    }
+}
+struct OptF64Visitor;
+impl<'de> Visitor<'de> for OptF64Visitor {
+    type Value = Option<f64>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a string containing one floating point value")
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(F64Visitor).map(Some)
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(None)
+    }
 }
