@@ -267,6 +267,8 @@ mod tests {
         assert_approx_eq!(joint.limit.lower, -1.0);
         assert_approx_eq!(joint.limit.effort, 0.0);
         assert_approx_eq!(joint.limit.velocity, 1.0);
+        assert_eq!(joint.calibration.as_ref().unwrap().rising, None);
+        assert_eq!(joint.calibration.as_ref().unwrap().falling, None);
         assert_approx_eq!(joint.dynamics.as_ref().unwrap().damping, 0.0);
         assert_approx_eq!(joint.dynamics.as_ref().unwrap().friction, 0.0);
         assert_eq!(joint.mimic.as_ref().unwrap().joint, "elbow1");
@@ -355,6 +357,7 @@ mod tests {
                     <parent link="shoulder1" />
                     <child link="elbow1" />
                     <axis xyz="0 1 -1" />
+                    <calibration />
                     <dynamics />
                     <mimic joint="elbow1" />
                     <safety_controller k_velocity="10" />
@@ -367,6 +370,7 @@ mod tests {
                     <parent link="elbow1" />
                     <child link="wrist1" />
                     <axis xyz=" 0 1 0 " />
+                    <calibration falling="1" rising="1" />
                     <dynamics damping="10.0" friction="1" />
                     <mimic joint="shoulder1" offset="1" multiplier="5" />
                     <safety_controller k_position="10" k_velocity="1" soft_lower_limit="-0.5" soft_upper_limit="1" />
