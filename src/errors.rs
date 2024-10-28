@@ -21,7 +21,9 @@ pub(crate) enum ErrorKind {
     #[error(transparent)]
     RustyXml(#[from] xml::BuilderError),
     #[error(transparent)]
-    QuickXml(#[from] quick_xml::DeError),
+    QuickXmlSe(#[from] quick_xml::SeError),
+    #[error(transparent)]
+    QuickXmlDe(#[from] quick_xml::DeError),
     #[error("command error {}\n--- stdout\n{}\n--- stderr\n{}", .msg, .stdout, .stderr)]
     Command {
         msg: String,
