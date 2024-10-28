@@ -6,6 +6,5 @@ rospack
 rosrun
 rustdocflags
 rustflags
-rustup
 urdf
 xacro
