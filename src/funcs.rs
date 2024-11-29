@@ -111,7 +111,6 @@ pub fn read_file<P: AsRef<Path>>(path: P) -> Result<Robot> {
 /// let urdf_robot = urdf_rs::read_from_string(s).unwrap();
 /// println!("{:?}", urdf_robot.links[0].visual[0].origin.xyz);
 /// ```
-
 pub fn read_from_string(string: &str) -> Result<Robot> {
     let sorted_string = sort_link_joint(string)?;
     serde_xml_rs::from_str(&sorted_string).map_err(UrdfError::new)
