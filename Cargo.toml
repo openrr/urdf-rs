@@ -19,7 +19,7 @@ quick-xml = { version = "0.37", features = ["overlapped-lists", "serialize"] }
 regex = "1.4.2"
 RustyXML = "0.3.0"
 serde = { version = "1.0.118", features = ["derive"] }
-serde-xml-rs = "0.6.0"
+serde-xml-rs = "0.7.0"
 thiserror = "2.0.0"
 
 [dev-dependencies]
