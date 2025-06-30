@@ -16,12 +16,12 @@ where
     let output = Command::new("rosrun")
         .args(["xacro", "xacro", "--inorder"])
         .arg(filename)
-        .args(args.iter().map(|(k, v)| format!("{}:={}", k, v)))
+        .args(args.iter().map(|(k, v)| format!("{k}:={v}")))
         .output()
         .or_else(|_| {
             Command::new("xacro")
                 .arg(filename)
-                .args(args.iter().map(|(k, v)| format!("{}:={}", k, v)))
+                .args(args.iter().map(|(k, v)| format!("{k}:={v}")))
                 .output()
         })
         .map_err(|e| {
