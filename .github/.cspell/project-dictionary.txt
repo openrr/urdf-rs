@@ -1,6 +1,5 @@
 funcs
 inorder
-repr
 rgba
 rospack
 rosrun
