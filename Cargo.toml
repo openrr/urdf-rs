@@ -15,7 +15,7 @@ repository = "https://github.com/openrr/urdf-rs"
 
 # Note: serde is public dependency.
 [dependencies]
-quick-xml = { version = "0.38", features = ["overlapped-lists", "serialize"] }
+quick-xml = { version = "0.39", features = ["overlapped-lists", "serialize"] }
 regex = "1.4.2"
 RustyXML = "0.3.0"
 serde = { version = "1.0.118", features = ["derive"] }
