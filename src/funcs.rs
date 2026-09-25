@@ -545,4 +545,147 @@ mod tests {
             assert!(read_from_string(&s).is_err(), "{quat}");
         }
     }
+
+    #[test]
+    fn quat_xyzw_all_origins() {
+        // <inertial>, <visual>, <collision> and <joint> origins, with xmlns
+        let s = r#"
+            <robot name="robot" version="1.1" xmlns="http://www.ros.org">
+                <link name="a">
+                    <inertial>
+                        <origin xyz="0 0 0.5" quat_xyzw="0.5 0.5 0.5 0.5"/>
+                        <mass value="1"/>
+                        <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+                    </inertial>
+                    <visual>
+                        <origin quat_xyzw="0.5 0.5 0.5 0.5"/>
+                        <geometry><sphere radius="1"/></geometry>
+                    </visual>
+                    <collision>
+                        <origin quat_xyzw="0.5 0.5 0.5 0.5"/>
+                        <geometry><sphere radius="1"/></geometry>
+                    </collision>
+                    <collision>
+                        <origin rpy="0.1 0.2 0.3"/>
+                        <geometry><sphere radius="1"/></geometry>
+                    </collision>
+                </link>
+                <link name="b" />
+                <joint name="j" type="revolute">
+                    <origin quat_xyzw="0.5 0.5 0.5 0.5"/>
+                    <parent link="a" />
+                    <child link="b" />
+                    <axis xyz="0 0 1" />
+                    <limit lower="-1" upper="1" effort="0" velocity="1"/>
+                </joint>
+            </robot>
+        "#;
+        use std::f64::consts::FRAC_PI_2;
+        let robot = read_from_string(s).unwrap();
+        let link = &robot.links[0];
+        let poses = [
+            &link.inertial.origin,
+            &link.visual[0].origin,
+            &link.collision[0].origin,
+            &robot.joints[0].origin,
+        ];
+        for pose in poses {
+            for (actual, expected) in pose.rpy.iter().zip([FRAC_PI_2, 0.0, FRAC_PI_2]) {
+                assert_approx_eq!(*actual, expected);
+            }
+        }
+        assert_eq!(*link.inertial.origin.xyz, [0.0, 0.0, 0.5]);
+        // origins without quat_xyzw are not affected
+        assert_eq!(*link.collision[1].origin.rpy, [0.1, 0.2, 0.3]);
+    }
+
+    #[test]
+    fn urdf_version() {
+        let cases = [
+            ("", (1, 0)),
+            (r#"version="1.0""#, (1, 0)),
+            (r#"version="1.1""#, (1, 1)),
+            (r#"version=" 1.2 ""#, (1, 2)),
+            (r#"version="2.0""#, (2, 0)),
+            // malformed version is treated as 1.0
+            (r#"version="1""#, (1, 0)),
+            (r#"version="1.1.0""#, (1, 0)),
+            (r#"version="a.b""#, (1, 0)),
+            (r#"version="""#, (1, 0)),
+        ];
+        for (version, expected) in cases {
+            let e: xml::Element = format!("<robot {version}/>").parse().unwrap();
+            assert_eq!(super::parse_urdf_version(&e), expected, "{version}");
+
+            // quat_xyzw is used only for 1.1 or later
+            let s = quat_robot(version, r#"quat_xyzw="0.5 0.5 0.5 0.5""#);
+            let robot = read_from_string(&s).unwrap();
+            let rpy = if expected >= (1, 1) {
+                [
+                    std::f64::consts::FRAC_PI_2,
+                    0.0,
+                    std::f64::consts::FRAC_PI_2,
+                ]
+            } else {
+                [0.0; 3]
+            };
+            assert_rpy(&robot, rpy);
+        }
+    }
+
+    /// Same as `urdf::Rotation::setFromRPY` of urdfdom_headers.
+    fn rpy_to_quaternion([r, p, y]: [f64; 3]) -> [f64; 4] {
+        let (sr, cr) = (r / 2.0).sin_cos();
+        let (sp, cp) = (p / 2.0).sin_cos();
+        let (sy, cy) = (y / 2.0).sin_cos();
+        [
+            sr * cp * cy - cr * sp * sy,
+            cr * sp * cy + sr * cp * sy,
+            cr * cp * sy - sr * sp * cy,
+            cr * cp * cy + sr * sp * sy,
+        ]
+    }
+
+    #[test]
+    fn quaternion_to_rpy_round_trip() {
+        let angles = [-3.0, -2.0, -1.5, -0.7, -0.1, 0.0, 0.1, 0.7, 1.5, 2.0, 3.0];
+        let pitches = [-1.5, -0.7, -0.1, 0.0, 0.1, 0.7, 1.5];
+        for r in angles {
+            for p in pitches {
+                for y in angles {
+                    let q = rpy_to_quaternion([r, p, y]);
+                    let rpy = super::quaternion_to_rpy(q);
+                    // pitch within (-pi/2, pi/2) gives the unique rpy
+                    assert_approx_eq!(rpy[0], r, 1e-9);
+                    assert_approx_eq!(rpy[1], p, 1e-9);
+                    assert_approx_eq!(rpy[2], y, 1e-9);
+
+                    // the scale and the sign of the quaternion do not matter
+                    let q2 = q.map(|v| v * -3.0);
+                    let rpy2 = super::quaternion_to_rpy(q2);
+                    for (a, b) in rpy.iter().zip(rpy2) {
+                        assert_approx_eq!(*a, b, 1e-9);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn quaternion_to_rpy_gimbal_lock() {
+        use std::f64::consts::FRAC_PI_2;
+        // When pitch is +-pi/2, only roll - yaw (or roll + yaw) is determined,
+        // so compare the rotations instead of the angles.
+        for p in [FRAC_PI_2, -FRAC_PI_2] {
+            for (r, y) in [(0.0, 0.0), (0.3, 0.0), (0.0, 0.3), (0.5, -1.0), (1.0, 2.0)] {
+                let q = rpy_to_quaternion([r, p, y]);
+                let rpy = super::quaternion_to_rpy(q);
+                assert_approx_eq!(rpy[0], 0.0);
+                assert_approx_eq!(rpy[1], p);
+                let q2 = rpy_to_quaternion(rpy);
+                let dot: f64 = q.iter().zip(q2).map(|(a, b)| a * b).sum();
+                assert_approx_eq!(dot.abs(), 1.0, 1e-9);
+            }
+        }
+    }
 }
