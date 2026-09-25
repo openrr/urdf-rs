@@ -5,18 +5,40 @@ use serde::Serialize;
 use std::mem;
 use std::path::Path;
 
-/// Parses the `version` attribute of `<robot>` as `(major, minor)`.
+/// URDF version specified by the `version` attribute of `<robot>`.
 ///
-/// Like urdfdom, a missing attribute means version 1.0. A malformed value
-/// is also treated as version 1.0.
-fn parse_urdf_version(robot: &xml::Element) -> (u32, u32) {
-    robot
-        .get_attribute("version", None)
-        .and_then(|v| {
-            let (major, minor) = v.trim().split_once('.')?;
-            Some((major.parse().ok()?, minor.parse().ok()?))
-        })
-        .unwrap_or((1, 0))
+/// The derived ordering compares `major` first, then `minor`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct UrdfVersion {
+    major: u32,
+    minor: u32,
+}
+
+impl UrdfVersion {
+    const V1_0: Self = Self::new(1, 0);
+    /// Adds `quat_xyzw` of `<origin>`.
+    const V1_1: Self = Self::new(1, 1);
+    /// Adds `acceleration`, `deceleration` and `jerk` of `<limit>`, and
+    /// changes the defaults and validation of limits and geometries.
+    const V1_2: Self = Self::new(1, 2);
+
+    const fn new(major: u32, minor: u32) -> Self {
+        Self { major, minor }
+    }
+
+    /// Parses the `version` attribute of `<robot>`.
+    ///
+    /// Like urdfdom, a missing attribute means version 1.0. A malformed value
+    /// is also treated as version 1.0.
+    fn from_robot(robot: &xml::Element) -> Self {
+        robot
+            .get_attribute("version", None)
+            .and_then(|v| {
+                let (major, minor) = v.trim().split_once('.')?;
+                Some(Self::new(major.parse().ok()?, minor.parse().ok()?))
+            })
+            .unwrap_or(Self::V1_0)
+    }
 }
 
 /// Converts a quaternion (x, y, z, w) to roll, pitch, yaw.
@@ -48,9 +70,9 @@ fn quaternion_to_rpy([x, y, z, w]: [f64; 4]) -> [f64; 3] {
 ///
 /// For URDF 1.1 or later, `quat_xyzw` is converted to `rpy` (specifying both
 /// is an error). For older versions, `quat_xyzw` is ignored, like urdfdom.
-fn convert_quat_xyzw(elm: &mut xml::Element, version: (u32, u32)) -> Result<()> {
+fn convert_quat_xyzw(elm: &mut xml::Element, version: UrdfVersion) -> Result<()> {
     if let Some(quat) = elm.remove_attribute("quat_xyzw", None) {
-        if version >= (1, 1) {
+        if version >= UrdfVersion::V1_1 {
             if elm.get_attribute("rpy", None).is_some() {
                 return Err(
                     "Both rpy and quat_xyzw orientations are defined. Use either one or the other."
@@ -71,13 +93,12 @@ fn convert_quat_xyzw(elm: &mut xml::Element, version: (u32, u32)) -> Result<()> 
     Ok(())
 }
 
-/// Parses an optional attribute as `f64`.
+/// Parses an optional attribute as `f64`. NaN is an error.
 fn get_f64_attribute(elm: &xml::Element, name: &str, context: &str) -> Result<Option<f64>> {
     elm.get_attribute(name, None)
-        .map(|v| {
-            v.trim()
-                .parse::<f64>()
-                .map_err(|_| format!("{context}: {name} value ({v}) is not a valid float").into())
+        .map(|v| match v.trim().parse::<f64>() {
+            Ok(value) if !value.is_nan() => Ok(value),
+            _ => Err(format!("{context}: {name} value ({v}) is not a valid float").into()),
         })
         .transpose()
 }
@@ -88,10 +109,10 @@ fn get_f64_attribute(elm: &xml::Element, name: &str, context: &str) -> Result<Op
 /// negative limits and `upper < lower` are errors. `deceleration` defaults to
 /// `acceleration`. For older versions, `acceleration`, `deceleration` and
 /// `jerk` introduced in URDF 1.2 are ignored, like urdfdom.
-fn convert_joint_limit(elm: &mut xml::Element, version: (u32, u32), joint: &str) -> Result<()> {
-    const NEW_ATTRS: [&str; 3] = ["acceleration", "deceleration", "jerk"];
-    if version < (1, 2) {
-        for name in NEW_ATTRS {
+fn convert_joint_limit(elm: &mut xml::Element, version: UrdfVersion, joint: &str) -> Result<()> {
+    const ATTRS_SINCE_1_2: [&str; 3] = ["acceleration", "deceleration", "jerk"];
+    if version < UrdfVersion::V1_2 {
+        for name in ATTRS_SINCE_1_2 {
             elm.remove_attribute(name, None);
         }
         return Ok(());
@@ -108,7 +129,7 @@ fn convert_joint_limit(elm: &mut xml::Element, version: (u32, u32), joint: &str)
             .into());
         }
     }
-    for name in ["effort", "velocity"].into_iter().chain(NEW_ATTRS) {
+    for name in ["effort", "velocity"].into_iter().chain(ATTRS_SINCE_1_2) {
         if let Some(value) = get_f64_attribute(elm, name, &context)? {
             if value < 0.0 {
                 return Err(format!("{context}: {name} value ({value}) is negative").into());
@@ -163,7 +184,7 @@ fn check_geometry(elm: &xml::Element) -> Result<()> {
 
 /// Handles the elements and attributes whose behavior depends on the URDF
 /// version.
-fn convert_versioned(elm: &mut xml::Element, version: (u32, u32)) -> Result<()> {
+fn convert_versioned(elm: &mut xml::Element, version: UrdfVersion) -> Result<()> {
     let joint_name = (elm.name == "joint").then(|| {
         elm.get_attribute("name", None)
             .unwrap_or_default()
@@ -177,7 +198,7 @@ fn convert_versioned(elm: &mut xml::Element, version: (u32, u32)) -> Result<()> 
         match (&joint_name, &*child.name) {
             (_, "origin") => convert_quat_xyzw(child, version)?,
             (Some(joint), "limit") => convert_joint_limit(child, version, joint)?,
-            _ if is_geometry && version >= (1, 2) => check_geometry(child)?,
+            _ if is_geometry && version >= UrdfVersion::V1_2 => check_geometry(child)?,
             _ => {}
         }
         convert_versioned(child, version)?;
@@ -188,7 +209,7 @@ fn convert_versioned(elm: &mut xml::Element, version: (u32, u32)) -> Result<()> 
 /// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
 fn sort_link_joint(string: &str) -> Result<String> {
     let mut e: xml::Element = string.parse().map_err(UrdfError::new)?;
-    let version = parse_urdf_version(&e);
+    let version = UrdfVersion::from_robot(&e);
     convert_versioned(&mut e, version)?;
     let mut links = Vec::new();
     let mut joints = Vec::new();
@@ -712,20 +733,24 @@ mod tests {
             (r#"version="1.1""#, (1, 1)),
             (r#"version=" 1.2 ""#, (1, 2)),
             (r#"version="2.0""#, (2, 0)),
+            // compared as numbers, not strings
+            (r#"version="1.10""#, (1, 10)),
             // malformed version is treated as 1.0
             (r#"version="1""#, (1, 0)),
             (r#"version="1.1.0""#, (1, 0)),
             (r#"version="a.b""#, (1, 0)),
             (r#"version="""#, (1, 0)),
         ];
+        assert!(super::UrdfVersion::new(1, 10) > super::UrdfVersion::V1_2);
         for (version, expected) in cases {
             let e: xml::Element = format!("<robot {version}/>").parse().unwrap();
-            assert_eq!(super::parse_urdf_version(&e), expected, "{version}");
+            let expected = super::UrdfVersion::new(expected.0, expected.1);
+            assert_eq!(super::UrdfVersion::from_robot(&e), expected, "{version}");
 
             // quat_xyzw is used only for 1.1 or later
             let s = quat_robot(version, r#"quat_xyzw="0.5 0.5 0.5 0.5""#);
             let robot = read_from_string(&s).unwrap();
-            let rpy = if expected >= (1, 1) {
+            let rpy = if expected >= super::UrdfVersion::V1_1 {
                 [
                     std::f64::consts::FRAC_PI_2,
                     0.0,
@@ -932,6 +957,9 @@ mod tests {
             // values are not checked
             let attrs = r#"lower="2" upper="-1" effort="-3" velocity="-4""#;
             assert!(read_limit(v, attrs).is_ok());
+            // invalid values of the ignored attributes are not errors
+            let attrs = r#"velocity="4" acceleration="a" deceleration="-1" jerk="NaN""#;
+            assert!(read_limit(v, attrs).is_ok());
 
             let robot = read_from_string(&limit_robot(v, r#"velocity="4""#)).unwrap();
             assert_loopback(&robot);
@@ -950,8 +978,55 @@ mod tests {
             r#"jerk="-1""#,
             r#"lower="a""#,
             r#"effort="""#,
+            r#"lower="NaN""#,
+            r#"upper="NaN""#,
+            r#"effort="NaN""#,
+            r#"velocity="NaN""#,
+            r#"acceleration="NaN""#,
+            r#"deceleration="NaN""#,
+            r#"jerk="NaN""#,
         ] {
             assert!(read_limit(v, attrs).is_err(), "{attrs}");
+        }
+
+        // the error message contains the joint name
+        let err = read_limit(v, r#"effort="-1""#).unwrap_err();
+        assert!(err.to_string().contains("joint [j]"), "{err}");
+    }
+
+    #[test]
+    fn joint_limit_other_joint_types_version_1_2() {
+        let inf = f64::INFINITY;
+        for joint_type in ["prismatic", "continuous", "fixed", "floating", "planar"] {
+            let s = format!(
+                r#"
+                <robot name="robot" version="1.2">
+                    <link name="a" />
+                    <link name="b" />
+                    <link name="c" />
+                    <joint name="j1" type="{joint_type}">
+                        <parent link="a" />
+                        <child link="b" />
+                        <limit />
+                    </joint>
+                    <joint name="j2" type="{joint_type}">
+                        <parent link="b" />
+                        <child link="c" />
+                    </joint>
+                </robot>
+                "#
+            );
+            let robot = read_from_string(&s).unwrap();
+            // omitted attributes of <limit> mean no limit
+            let limit = &robot.joints[0].limit;
+            assert_eq!(
+                (limit.lower, limit.upper, limit.effort, limit.velocity),
+                (-inf, inf, inf, inf),
+                "{joint_type}"
+            );
+            // without <limit>, the default is used as before
+            assert_eq!(robot.joints[1].limit, crate::JointLimit::default());
+            assert_loopback(&robot);
         }
     }
 
