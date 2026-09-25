@@ -5,9 +5,86 @@ use serde::Serialize;
 use std::mem;
 use std::path::Path;
 
+/// Parses the `version` attribute of `<robot>` as `(major, minor)`.
+///
+/// Like urdfdom, a missing attribute means version 1.0. A malformed value
+/// is also treated as version 1.0.
+fn parse_urdf_version(robot: &xml::Element) -> (u32, u32) {
+    robot
+        .get_attribute("version", None)
+        .and_then(|v| {
+            let (major, minor) = v.trim().split_once('.')?;
+            Some((major.parse().ok()?, minor.parse().ok()?))
+        })
+        .unwrap_or((1, 0))
+}
+
+/// Converts a quaternion (x, y, z, w) to roll, pitch, yaw.
+///
+/// This follows `urdf::Rotation::getRPY` of urdfdom_headers.
+fn quaternion_to_rpy([x, y, z, w]: [f64; 4]) -> [f64; 3] {
+    let norm = (x * x + y * y + z * z + w * w).sqrt();
+    let [x, y, z, w] = if norm > 0.0 {
+        [x / norm, y / norm, z / norm, w / norm]
+    } else {
+        [0.0, 0.0, 0.0, 1.0]
+    };
+    let sin_pitch = -2.0 * (x * z - w * y);
+    if sin_pitch <= -0.99999 {
+        [0.0, -std::f64::consts::FRAC_PI_2, 2.0 * x.atan2(-y)]
+    } else if sin_pitch >= 0.99999 {
+        [0.0, std::f64::consts::FRAC_PI_2, 2.0 * (-x).atan2(y)]
+    } else {
+        let (sqx, sqy, sqz, sqw) = (x * x, y * y, z * z, w * w);
+        [
+            (2.0 * (y * z + w * x)).atan2(sqw - sqx - sqy + sqz),
+            sin_pitch.asin(),
+            (2.0 * (x * y + w * z)).atan2(sqw + sqx - sqy - sqz),
+        ]
+    }
+}
+
+/// Handles the `quat_xyzw` attribute of `<origin>` introduced in URDF 1.1.
+///
+/// For URDF 1.1 or later, `quat_xyzw` is converted to `rpy` (specifying both
+/// is an error). For older versions, `quat_xyzw` is ignored, like urdfdom.
+fn convert_quat_xyzw(elm: &mut xml::Element, supports_quat: bool) -> Result<()> {
+    if elm.name == "origin" {
+        if let Some(quat) = elm.remove_attribute("quat_xyzw", None) {
+            if supports_quat {
+                if elm.get_attribute("rpy", None).is_some() {
+                    return Err(
+                        "Both rpy and quat_xyzw orientations are defined. Use either one or the other."
+                            .into(),
+                    );
+                }
+                let values = quat
+                    .split_whitespace()
+                    .map(str::parse::<f64>)
+                    .collect::<std::result::Result<Vec<_>, _>>()
+                    .ok()
+                    .and_then(|v| <[f64; 4]>::try_from(v).ok())
+                    .ok_or_else(|| {
+                        format!("quat_xyzw must be four floating point values: [{quat}]")
+                    })?;
+                let [r, p, y] = quaternion_to_rpy(values);
+                elm.set_attribute("rpy".to_owned(), None, format!("{r} {p} {y}"));
+            }
+        }
+    }
+    for c in &mut elm.children {
+        if let xml::Xml::ElementNode(child) = c {
+            convert_quat_xyzw(child, supports_quat)?;
+        }
+    }
+    Ok(())
+}
+
 /// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
 fn sort_link_joint(string: &str) -> Result<String> {
     let mut e: xml::Element = string.parse().map_err(UrdfError::new)?;
+    let supports_quat = parse_urdf_version(&e) >= (1, 1);
+    convert_quat_xyzw(&mut e, supports_quat)?;
     let mut links = Vec::new();
     let mut joints = Vec::new();
     let mut materials = Vec::new();
@@ -385,5 +462,87 @@ mod tests {
         assert!(!s.contains("Robot"), "{s}"); // https://github.com/openrr/urdf-rs/issues/80
         let robot = read_from_string(&s).unwrap();
         check_robot(&robot);
+    }
+
+    fn quat_robot(version: &str, origin_attrs: &str) -> String {
+        format!(
+            r#"
+            <robot name="robot" {version}>
+                <link name="a">
+                    <visual>
+                        <origin xyz="1 2 3" {origin_attrs}/>
+                        <geometry><sphere radius="1"/></geometry>
+                    </visual>
+                </link>
+                <link name="b" />
+                <joint name="j" type="fixed">
+                    <origin {origin_attrs}/>
+                    <parent link="a" />
+                    <child link="b" />
+                </joint>
+            </robot>
+            "#
+        )
+    }
+
+    fn assert_rpy(robot: &Robot, expected: [f64; 3]) {
+        let poses = [&robot.links[0].visual[0].origin, &robot.joints[0].origin];
+        for pose in poses {
+            for (actual, expected) in pose.rpy.iter().zip(expected) {
+                assert_approx_eq!(*actual, expected);
+            }
+        }
+        assert_eq!(*robot.links[0].visual[0].origin.xyz, [1.0, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn quat_xyzw_version_1_1() {
+        use std::f64::consts::FRAC_PI_2;
+        let cases = [
+            ("0.5 0.5 0.5 0.5", [FRAC_PI_2, 0.0, FRAC_PI_2]),
+            ("0 0 0 1", [0.0, 0.0, 0.0]),
+            // not normalized
+            ("0 0 0 2", [0.0, 0.0, 0.0]),
+            ("0 0 0 0", [0.0, 0.0, 0.0]),
+            // gimbal lock
+            ("0 1 0 1", [0.0, FRAC_PI_2, 0.0]),
+            ("0 -1 0 1", [0.0, -FRAC_PI_2, 0.0]),
+            (" 0 0 1 0 ", [0.0, 0.0, std::f64::consts::PI]),
+        ];
+        for version in [r#"version="1.1""#, r#"version="1.2""#] {
+            for (quat, expected) in cases {
+                let s = quat_robot(version, &format!(r#"quat_xyzw="{quat}""#));
+                let robot = read_from_string(&s).unwrap();
+                assert_rpy(&robot, expected);
+
+                // Loopback test
+                let robot = read_from_string(&write_to_string(&robot).unwrap()).unwrap();
+                assert_rpy(&robot, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn quat_xyzw_ignored_before_version_1_1() {
+        for version in ["", r#"version="1.0""#] {
+            let s = quat_robot(version, r#"quat_xyzw="0.5 0.5 0.5 0.5""#);
+            let robot = read_from_string(&s).unwrap();
+            assert_rpy(&robot, [0.0, 0.0, 0.0]);
+
+            let s = quat_robot(version, r#"rpy="0.1 0.2 0.3" quat_xyzw="0.5 0.5 0.5 0.5""#);
+            let robot = read_from_string(&s).unwrap();
+            assert_rpy(&robot, [0.1, 0.2, 0.3]);
+        }
+    }
+
+    #[test]
+    fn quat_xyzw_errors() {
+        let version = r#"version="1.1""#;
+        let s = quat_robot(version, r#"rpy="0 0 0" quat_xyzw="0 0 0 1""#);
+        assert!(read_from_string(&s).is_err());
+        for quat in ["0 0 1", "0 0 0 1 0", "0 0 a 1", ""] {
+            let s = quat_robot(version, &format!(r#"quat_xyzw="{quat}""#));
+            assert!(read_from_string(&s).is_err(), "{quat}");
+        }
     }
 }

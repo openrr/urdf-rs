@@ -6,4 +6,6 @@ rosrun
 rustdocflags
 rustflags
 urdf
+urdfdom
 xacro
+xyzw
