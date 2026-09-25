@@ -6,6 +6,8 @@
 
 Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
 
+The `quat_xyzw` attribute of `<origin>` introduced in URDF 1.1 is supported when `<robot version="1.1">` (or later) is specified. It is converted to `rpy` when parsing, like [urdfdom](https://github.com/ros/urdfdom).
+
 ## Example
 
 You can access urdf elements like below example.
