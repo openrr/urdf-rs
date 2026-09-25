@@ -48,34 +48,139 @@ fn quaternion_to_rpy([x, y, z, w]: [f64; 4]) -> [f64; 3] {
 ///
 /// For URDF 1.1 or later, `quat_xyzw` is converted to `rpy` (specifying both
 /// is an error). For older versions, `quat_xyzw` is ignored, like urdfdom.
-fn convert_quat_xyzw(elm: &mut xml::Element, supports_quat: bool) -> Result<()> {
-    if elm.name == "origin" {
-        if let Some(quat) = elm.remove_attribute("quat_xyzw", None) {
-            if supports_quat {
-                if elm.get_attribute("rpy", None).is_some() {
-                    return Err(
-                        "Both rpy and quat_xyzw orientations are defined. Use either one or the other."
-                            .into(),
-                    );
-                }
-                let values = quat
-                    .split_whitespace()
-                    .map(str::parse::<f64>)
-                    .collect::<std::result::Result<Vec<_>, _>>()
-                    .ok()
-                    .and_then(|v| <[f64; 4]>::try_from(v).ok())
-                    .ok_or_else(|| {
-                        format!("quat_xyzw must be four floating point values: [{quat}]")
-                    })?;
-                let [r, p, y] = quaternion_to_rpy(values);
-                elm.set_attribute("rpy".to_owned(), None, format!("{r} {p} {y}"));
+fn convert_quat_xyzw(elm: &mut xml::Element, version: (u32, u32)) -> Result<()> {
+    if let Some(quat) = elm.remove_attribute("quat_xyzw", None) {
+        if version >= (1, 1) {
+            if elm.get_attribute("rpy", None).is_some() {
+                return Err(
+                    "Both rpy and quat_xyzw orientations are defined. Use either one or the other."
+                        .into(),
+                );
+            }
+            let values = quat
+                .split_whitespace()
+                .map(str::parse::<f64>)
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .ok()
+                .and_then(|v| <[f64; 4]>::try_from(v).ok())
+                .ok_or_else(|| format!("quat_xyzw must be four floating point values: [{quat}]"))?;
+            let [r, p, y] = quaternion_to_rpy(values);
+            elm.set_attribute("rpy".to_owned(), None, format!("{r} {p} {y}"));
+        }
+    }
+    Ok(())
+}
+
+/// Parses an optional attribute as `f64`.
+fn get_f64_attribute(elm: &xml::Element, name: &str, context: &str) -> Result<Option<f64>> {
+    elm.get_attribute(name, None)
+        .map(|v| {
+            v.trim()
+                .parse::<f64>()
+                .map_err(|_| format!("{context}: {name} value ({v}) is not a valid float").into())
+        })
+        .transpose()
+}
+
+/// Handles `<limit>` of `<joint>` according to the URDF version.
+///
+/// For URDF 1.2 or later, omitted limits mean no limit (infinity), and
+/// negative limits and `upper < lower` are errors. `deceleration` defaults to
+/// `acceleration`. For older versions, `acceleration`, `deceleration` and
+/// `jerk` introduced in URDF 1.2 are ignored, like urdfdom.
+fn convert_joint_limit(elm: &mut xml::Element, version: (u32, u32), joint: &str) -> Result<()> {
+    const NEW_ATTRS: [&str; 3] = ["acceleration", "deceleration", "jerk"];
+    if version < (1, 2) {
+        for name in NEW_ATTRS {
+            elm.remove_attribute(name, None);
+        }
+        return Ok(());
+    }
+
+    let context = format!("joint [{joint}]");
+    let lower = get_f64_attribute(elm, "lower", &context)?;
+    let upper = get_f64_attribute(elm, "upper", &context)?;
+    if let (Some(lower), Some(upper)) = (lower, upper) {
+        if upper < lower {
+            return Err(format!(
+                "{context}: upper position limit ({upper}) cannot be smaller than lower position limit ({lower})"
+            )
+            .into());
+        }
+    }
+    for name in ["effort", "velocity"].into_iter().chain(NEW_ATTRS) {
+        if let Some(value) = get_f64_attribute(elm, name, &context)? {
+            if value < 0.0 {
+                return Err(format!("{context}: {name} value ({value}) is negative").into());
             }
         }
     }
-    for c in &mut elm.children {
-        if let xml::Xml::ElementNode(child) = c {
-            convert_quat_xyzw(child, supports_quat)?;
+
+    for (name, default) in [
+        ("lower", "-inf"),
+        ("upper", "inf"),
+        ("effort", "inf"),
+        ("velocity", "inf"),
+    ] {
+        if elm.get_attribute(name, None).is_none() {
+            elm.set_attribute(name.to_owned(), None, default.to_owned());
         }
+    }
+    if elm.get_attribute("deceleration", None).is_none() {
+        if let Some(acceleration) = elm.get_attribute("acceleration", None) {
+            let acceleration = acceleration.to_owned();
+            elm.set_attribute("deceleration".to_owned(), None, acceleration);
+        }
+    }
+    Ok(())
+}
+
+/// Checks that the dimensions of `<sphere>`, `<box>`, `<cylinder>` and
+/// `<capsule>` are positive finite values, as required by URDF 1.2 or later.
+fn check_geometry(elm: &xml::Element) -> Result<()> {
+    let (shape, attrs): (_, &[_]) = match &*elm.name {
+        "sphere" => ("Sphere", &["radius"]),
+        "box" => ("Box", &["size"]),
+        "cylinder" => ("Cylinder", &["radius", "length"]),
+        "capsule" => ("Capsule", &["radius", "length"]),
+        _ => return Ok(()),
+    };
+    for attr in attrs {
+        // Missing or malformed values are reported by the deserializer.
+        let Some(value) = elm.get_attribute(attr, None) else {
+            continue;
+        };
+        let valid = value
+            .split_whitespace()
+            .filter_map(|v| v.parse::<f64>().ok())
+            .all(|v| v.is_finite() && v > 0.0);
+        if !valid {
+            return Err(format!("{shape} {attr} must be positive finite values: [{value}]").into());
+        }
+    }
+    Ok(())
+}
+
+/// Handles the elements and attributes whose behavior depends on the URDF
+/// version.
+fn convert_versioned(elm: &mut xml::Element, version: (u32, u32)) -> Result<()> {
+    let joint_name = (elm.name == "joint").then(|| {
+        elm.get_attribute("name", None)
+            .unwrap_or_default()
+            .to_owned()
+    });
+    let is_geometry = elm.name == "geometry";
+    for c in &mut elm.children {
+        let xml::Xml::ElementNode(child) = c else {
+            continue;
+        };
+        match (&joint_name, &*child.name) {
+            (_, "origin") => convert_quat_xyzw(child, version)?,
+            (Some(joint), "limit") => convert_joint_limit(child, version, joint)?,
+            _ if is_geometry && version >= (1, 2) => check_geometry(child)?,
+            _ => {}
+        }
+        convert_versioned(child, version)?;
     }
     Ok(())
 }
@@ -83,8 +188,8 @@ fn convert_quat_xyzw(elm: &mut xml::Element, supports_quat: bool) -> Result<()> 
 /// sort <link> and <joint> to avoid the [issue](https://github.com/RReverser/serde-xml-rs/issues/5)
 fn sort_link_joint(string: &str) -> Result<String> {
     let mut e: xml::Element = string.parse().map_err(UrdfError::new)?;
-    let supports_quat = parse_urdf_version(&e) >= (1, 1);
-    convert_quat_xyzw(&mut e, supports_quat)?;
+    let version = parse_urdf_version(&e);
+    convert_versioned(&mut e, version)?;
     let mut links = Vec::new();
     let mut joints = Vec::new();
     let mut materials = Vec::new();
@@ -686,6 +791,239 @@ mod tests {
                 let dot: f64 = q.iter().zip(q2).map(|(a, b)| a * b).sum();
                 assert_approx_eq!(dot.abs(), 1.0, 1e-9);
             }
+        }
+    }
+
+    fn limit_robot(version: &str, limit_attrs: &str) -> String {
+        format!(
+            r#"
+            <robot name="robot" {version}>
+                <link name="a" />
+                <link name="b" />
+                <joint name="j" type="revolute">
+                    <parent link="a" />
+                    <child link="b" />
+                    <limit {limit_attrs}/>
+                </joint>
+            </robot>
+            "#
+        )
+    }
+
+    fn read_limit(version: &str, limit_attrs: &str) -> crate::Result<crate::JointLimit> {
+        let robot = read_from_string(&limit_robot(version, limit_attrs))?;
+        Ok(robot.joints[0].limit.clone())
+    }
+
+    fn assert_loopback(robot: &Robot) {
+        let s = write_to_string(robot).unwrap();
+        assert!(!s.contains("inf"), "{s}");
+        let robot2 = read_from_string(&s).unwrap();
+        assert_eq!(robot.version, robot2.version);
+        for (j1, j2) in robot.joints.iter().zip(&robot2.joints) {
+            assert_eq!(j1.limit, j2.limit, "{s}");
+        }
+    }
+
+    #[test]
+    fn joint_limit_version_1_2() {
+        let inf = f64::INFINITY;
+        let v = r#"version="1.2""#;
+
+        let attrs = r#"lower="-1" upper="2" effort="3" velocity="4" acceleration="5" deceleration="6" jerk="7""#;
+        let limit = read_limit(v, attrs).unwrap();
+        assert_eq!(
+            limit,
+            crate::JointLimit {
+                lower: -1.0,
+                upper: 2.0,
+                effort: 3.0,
+                velocity: 4.0,
+                acceleration: 5.0,
+                deceleration: 6.0,
+                jerk: 7.0,
+            }
+        );
+
+        // omitted limits mean no limit, even for revolute joints
+        let limit = read_limit(v, "").unwrap();
+        assert_eq!(
+            limit,
+            crate::JointLimit {
+                lower: -inf,
+                upper: inf,
+                effort: inf,
+                velocity: inf,
+                acceleration: inf,
+                deceleration: inf,
+                jerk: inf,
+            }
+        );
+
+        // deceleration defaults to acceleration
+        let limit = read_limit(v, r#"acceleration=" 5 ""#).unwrap();
+        assert_eq!(limit.acceleration, 5.0);
+        assert_eq!(limit.deceleration, 5.0);
+        let limit = read_limit(v, r#"deceleration="6""#).unwrap();
+        assert_eq!(limit.acceleration, inf);
+        assert_eq!(limit.deceleration, 6.0);
+
+        // zero limits and lower == upper are valid
+        let attrs = r#"lower="1" upper="1" effort="0" velocity="0" acceleration="0" deceleration="0" jerk="0""#;
+        let limit = read_limit(v, attrs).unwrap();
+        assert_eq!((limit.lower, limit.upper, limit.jerk), (1.0, 1.0, 0.0));
+
+        // later versions also use the 1.2 semantics
+        let limit = read_limit(r#"version="1.3""#, "").unwrap();
+        assert_eq!(limit.velocity, inf);
+
+        // Loopback test
+        for attrs in [
+            "",
+            r#"lower="-1" upper="2" effort="3" velocity="4" acceleration="5" deceleration="6" jerk="7""#,
+            r#"acceleration="5""#,
+            r#"deceleration="6""#,
+            r#"lower="-1""#,
+        ] {
+            let robot = read_from_string(&limit_robot(v, attrs)).unwrap();
+            assert_loopback(&robot);
+        }
+    }
+
+    #[test]
+    fn joint_limit_infinite_deceleration_loopback() {
+        // deceleration is infinity while acceleration is finite: this cannot
+        // be expressed by omitting deceleration, so "inf" is written.
+        let mut robot = read_from_string(&limit_robot(r#"version="1.2""#, "")).unwrap();
+        robot.joints[0].limit.acceleration = 5.0;
+        let s = write_to_string(&robot).unwrap();
+        assert!(s.contains(r#"deceleration="inf""#), "{s}");
+        let robot2 = read_from_string(&s).unwrap();
+        assert_eq!(robot.joints[0].limit, robot2.joints[0].limit);
+    }
+
+    #[test]
+    fn joint_limit_before_version_1_2() {
+        let inf = f64::INFINITY;
+        for v in ["", r#"version="1.0""#, r#"version="1.1""#] {
+            // acceleration, deceleration and jerk are ignored
+            let attrs = r#"lower="-1" upper="2" effort="3" velocity="4" acceleration="5" deceleration="6" jerk="7""#;
+            let limit = read_limit(v, attrs).unwrap();
+            assert_eq!(
+                limit,
+                crate::JointLimit {
+                    lower: -1.0,
+                    upper: 2.0,
+                    effort: 3.0,
+                    velocity: 4.0,
+                    acceleration: inf,
+                    deceleration: inf,
+                    jerk: inf,
+                }
+            );
+
+            // omitted lower, upper and effort are 0
+            let limit = read_limit(v, r#"velocity="4""#).unwrap();
+            assert_eq!((limit.lower, limit.upper, limit.effort), (0.0, 0.0, 0.0));
+
+            // velocity is required
+            assert!(read_limit(v, "").is_err());
+
+            // values are not checked
+            let attrs = r#"lower="2" upper="-1" effort="-3" velocity="-4""#;
+            assert!(read_limit(v, attrs).is_ok());
+
+            let robot = read_from_string(&limit_robot(v, r#"velocity="4""#)).unwrap();
+            assert_loopback(&robot);
+        }
+    }
+
+    #[test]
+    fn joint_limit_errors_version_1_2() {
+        let v = r#"version="1.2""#;
+        for attrs in [
+            r#"lower="1" upper="0""#,
+            r#"effort="-1""#,
+            r#"velocity="-1""#,
+            r#"acceleration="-1""#,
+            r#"deceleration="-1""#,
+            r#"jerk="-1""#,
+            r#"lower="a""#,
+            r#"effort="""#,
+        ] {
+            assert!(read_limit(v, attrs).is_err(), "{attrs}");
+        }
+    }
+
+    fn geometry_robot(version: &str, geometry: &str) -> String {
+        format!(
+            r#"
+            <robot name="robot" {version}>
+                <link name="a">
+                    <visual>
+                        <geometry>{geometry}</geometry>
+                    </visual>
+                    <collision>
+                        <geometry>{geometry}</geometry>
+                    </collision>
+                </link>
+            </robot>
+            "#
+        )
+    }
+
+    #[test]
+    fn geometry_version_1_2() {
+        let valid = [
+            r#"<sphere radius="1"/>"#,
+            r#"<box size="1 2 3"/>"#,
+            r#"<cylinder radius="1" length="2"/>"#,
+            r#"<capsule radius="1" length="2"/>"#,
+            r#"<mesh filename="a.stl" scale="0 -1 1"/>"#,
+        ];
+        let invalid = [
+            r#"<sphere radius="0"/>"#,
+            r#"<sphere radius="-1"/>"#,
+            r#"<sphere radius="inf"/>"#,
+            r#"<sphere radius="NaN"/>"#,
+            r#"<box size="1 0 3"/>"#,
+            r#"<box size="1 2 -3"/>"#,
+            r#"<cylinder radius="0" length="2"/>"#,
+            r#"<cylinder radius="1" length="-2"/>"#,
+            r#"<capsule radius="-1" length="2"/>"#,
+            r#"<capsule radius="1" length="0"/>"#,
+        ];
+        for g in valid {
+            for v in ["", r#"version="1.1""#, r#"version="1.2""#] {
+                assert!(read_from_string(&geometry_robot(v, g)).is_ok(), "{v} {g}");
+            }
+        }
+        for g in invalid {
+            // not checked before 1.2
+            for v in ["", r#"version="1.1""#] {
+                assert!(read_from_string(&geometry_robot(v, g)).is_ok(), "{v} {g}");
+            }
+            let v = r#"version="1.2""#;
+            assert!(read_from_string(&geometry_robot(v, g)).is_err(), "{v} {g}");
+        }
+    }
+
+    #[test]
+    fn robot_version() {
+        let robot = read_from_string(&limit_robot("", r#"velocity="1""#)).unwrap();
+        assert_eq!(robot.version, None);
+        let s = write_to_string(&robot).unwrap();
+        assert!(!s.contains("version"), "{s}");
+
+        for v in ["1.0", "1.1", "1.2"] {
+            let robot = read_from_string(&limit_robot(
+                &format!(r#"version="{v}""#),
+                r#"velocity="1""#,
+            ))
+            .unwrap();
+            assert_eq!(robot.version.as_deref(), Some(v));
+            let s = write_to_string(&robot).unwrap();
+            assert!(s.contains(&format!(r#"version="{v}""#)), "{s}");
         }
     }
 }

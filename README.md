@@ -6,7 +6,12 @@
 
 Only [link](http://wiki.ros.org/urdf/XML/link) and [joint](http://wiki.ros.org/urdf/XML/joint) are supported.
 
-The `quat_xyzw` attribute of `<origin>` introduced in URDF 1.1 is supported when `<robot version="1.1">` (or later) is specified. It is converted to `rpy` when parsing, like [urdfdom](https://github.com/ros/urdfdom).
+## URDF versions
+
+The `version` attribute of `<robot>` is supported, like [urdfdom](https://github.com/ros/urdfdom). If it is omitted, version 1.0 is assumed.
+
+- 1.1: The `quat_xyzw` attribute of `<origin>` is supported. It is converted to `rpy` when parsing.
+- 1.2: The `acceleration`, `deceleration` and `jerk` attributes of `<limit>` are supported. Omitted limits mean no limit and are represented as infinity. Negative limits, `upper` smaller than `lower`, and non-positive or non-finite geometry dimensions are errors.
 
 ## Example
 

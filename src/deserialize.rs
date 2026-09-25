@@ -341,20 +341,100 @@ pub enum JointType {
     Spherical,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+/// Joint limits.
+///
+/// For URDF 1.2 or later, omitted limits mean no limit and are represented as
+/// infinity (`lower` is negative infinity). `acceleration`, `deceleration` and
+/// `jerk` were introduced in URDF 1.2 and are infinity for older versions.
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct JointLimit {
-    #[serde(rename(serialize = "@lower"), default)]
+    #[serde(default)]
     #[serde(deserialize_with = "de_f64")]
     pub lower: f64,
-    #[serde(rename(serialize = "@upper"), default)]
+    #[serde(default)]
     #[serde(deserialize_with = "de_f64")]
     pub upper: f64,
-    #[serde(rename(serialize = "@effort"), default)]
+    #[serde(default)]
     #[serde(deserialize_with = "de_f64")]
     pub effort: f64,
-    #[serde(rename(serialize = "@velocity"))]
     #[serde(deserialize_with = "de_f64")]
     pub velocity: f64,
+    #[serde(default = "infinity")]
+    #[serde(deserialize_with = "de_f64")]
+    pub acceleration: f64,
+    /// Defaults to `acceleration` if omitted.
+    #[serde(default = "infinity")]
+    #[serde(deserialize_with = "de_f64")]
+    pub deceleration: f64,
+    #[serde(default = "infinity")]
+    #[serde(deserialize_with = "de_f64")]
+    pub jerk: f64,
+}
+
+fn infinity() -> f64 {
+    f64::INFINITY
+}
+
+impl Default for JointLimit {
+    fn default() -> Self {
+        Self {
+            lower: 0.0,
+            upper: 0.0,
+            effort: 0.0,
+            velocity: 0.0,
+            acceleration: f64::INFINITY,
+            deceleration: f64::INFINITY,
+            jerk: f64::INFINITY,
+        }
+    }
+}
+
+impl Serialize for JointLimit {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Infinite values mean no limit and are omitted (urdfdom cannot parse
+        // "inf"). `deceleration` is omitted if it is the same as
+        // `acceleration`, which is its default.
+        #[derive(Serialize)]
+        struct JointLimitRepr {
+            #[serde(rename(serialize = "@lower"), skip_serializing_if = "Option::is_none")]
+            lower: Option<f64>,
+            #[serde(rename(serialize = "@upper"), skip_serializing_if = "Option::is_none")]
+            upper: Option<f64>,
+            #[serde(rename(serialize = "@effort"), skip_serializing_if = "Option::is_none")]
+            effort: Option<f64>,
+            #[serde(
+                rename(serialize = "@velocity"),
+                skip_serializing_if = "Option::is_none"
+            )]
+            velocity: Option<f64>,
+            #[serde(
+                rename(serialize = "@acceleration"),
+                skip_serializing_if = "Option::is_none"
+            )]
+            acceleration: Option<f64>,
+            #[serde(
+                rename(serialize = "@deceleration"),
+                skip_serializing_if = "Option::is_none"
+            )]
+            deceleration: Option<f64>,
+            #[serde(rename(serialize = "@jerk"), skip_serializing_if = "Option::is_none")]
+            jerk: Option<f64>,
+        }
+        let finite = |v: f64| v.is_finite().then_some(v);
+        JointLimitRepr {
+            lower: finite(self.lower),
+            upper: finite(self.upper),
+            effort: finite(self.effort),
+            velocity: finite(self.velocity),
+            acceleration: finite(self.acceleration),
+            deceleration: (self.deceleration != self.acceleration).then_some(self.deceleration),
+            jerk: finite(self.jerk),
+        }
+        .serialize(serializer)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
@@ -476,6 +556,14 @@ pub struct Dynamics {
 pub struct Robot {
     #[serde(rename(serialize = "@name"), default)]
     pub name: String,
+
+    /// The URDF version, such as `"1.1"`. `None` means version 1.0.
+    #[serde(
+        rename(serialize = "@version"),
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub version: Option<String>,
 
     #[serde(rename = "link", default, skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<Link>,
