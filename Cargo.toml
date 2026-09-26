@@ -13,6 +13,10 @@ keywords = ["robotics", "robot", "ros", "urdf"]
 categories = ["data-structures", "parsing"]
 repository = "https://github.com/openrr/urdf-rs"
 
+[features]
+default = []
+rust-xacro = ["dep:xacro-rs"]
+
 # Note: serde is public dependency.
 [dependencies]
 quick-xml = { version = "0.39", features = ["overlapped-lists", "serialize"] }
@@ -21,6 +25,7 @@ RustyXML = "0.3.0"
 serde = { version = "1.0.118", features = ["derive"] }
 serde-xml-rs = "0.6.0"
 thiserror = "2.0.0"
+xacro-rs = { version = "0.2.2", optional = true }
 
 [dev-dependencies]
 assert_approx_eq = "1"

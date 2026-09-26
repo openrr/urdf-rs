@@ -8,6 +8,51 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::LazyLock;
 
+#[cfg(feature = "rust-xacro")]
+use std::{collections::HashMap, path::PathBuf, sync::Mutex};
+
+// TODO: This is a hack, re-work this with either a better interface or simply
+// read the file twice.
+#[cfg(feature = "rust-xacro")]
+static FOUND_PACKAGES: LazyLock<Mutex<HashMap<String, PathBuf>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+#[cfg(feature = "rust-xacro")]
+pub fn convert_xacro_to_urdf_with_args<P>(filename: P, args: &[(String, String)]) -> Result<String>
+where
+    P: AsRef<Path>,
+{
+    let filename = filename.as_ref();
+    let params: HashMap<String, String> = args.iter().cloned().collect();
+
+    let processor = xacro_rs::XacroProcessor::builder()
+        .with_args(params)
+        .with_extension(Box::new(xacro_rs::extensions::FindExtension::new()))
+        .with_extension(Box::new(xacro_rs::extensions::OptEnvExtension::new()))
+        .build();
+
+    let result = processor.run(filename).map_err(|e| {
+        ErrorKind::Other(format!(
+            "failed to process xacro file {}: {}",
+            filename.display(),
+            e
+        ))
+    })?;
+
+    // Extract found packages from FindExtension and cache them for later use
+    if let Some(find_ext) = processor.extensions().iter().find_map(|ext| {
+        ext.as_any()
+            .downcast_ref::<xacro_rs::extensions::FindExtension>()
+    }) {
+        let found_packages = find_ext.get_found_packages();
+        let mut packages = FOUND_PACKAGES.lock().unwrap_or_else(|e| e.into_inner());
+        packages.extend(found_packages);
+    }
+
+    Ok(result)
+}
+
+#[cfg(not(feature = "rust-xacro"))]
 pub fn convert_xacro_to_urdf_with_args<P>(filename: P, args: &[(String, String)]) -> Result<String>
 where
     P: AsRef<Path>,
@@ -47,6 +92,19 @@ where
 }
 
 pub fn rospack_find(package: &str) -> Result<String> {
+    // Check process-wide cache from xacro processing
+    #[cfg(feature = "rust-xacro")]
+    {
+        let cached_path = FOUND_PACKAGES
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(package)
+            .cloned();
+        if let Some(path) = cached_path {
+            return Ok(path.to_string_lossy().to_string());
+        }
+    }
+
     let output = Command::new("rospack")
         .arg("find")
         .arg(package)
