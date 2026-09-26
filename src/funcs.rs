@@ -329,8 +329,8 @@ pub fn write_to_string(robot: &Robot) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{read_from_string, write_to_string};
     use crate::{Geometry, JointType, Robot};
+    use crate::{read_from_string, write_to_string};
     use assert_approx_eq::assert_approx_eq;
 
     fn check_robot(robot: &Robot) {
@@ -404,20 +404,14 @@ mod tests {
             _ => panic!("geometry error"),
         }
         match &link.visual[1].geometry {
-            Geometry::Mesh {
-                ref filename,
-                scale,
-            } => {
+            Geometry::Mesh { filename, scale } => {
                 assert_eq!(filename, "aa.dae");
                 assert!(scale.is_none());
             }
             _ => panic!("geometry error"),
         }
         match &link.visual[2].geometry {
-            Geometry::Mesh {
-                ref filename,
-                scale,
-            } => {
+            Geometry::Mesh { filename, scale } => {
                 assert_eq!(filename, "bbb.dae");
                 let scale = scale.as_ref().unwrap();
                 assert_approx_eq!(scale[0], 2.0);

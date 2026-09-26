@@ -6,7 +6,7 @@ name = "urdf-rs"
 # Then, CI will publish to crates.io and create a GitHub release.
 version = "0.10.0"
 authors = ["Takashi Ogura <t.ogura@gmail.com>"]
-edition = "2021"
+edition = "2024"
 description = "URDF parser"
 license = "Apache-2.0"
 keywords = ["robotics", "robot", "ros", "urdf"]

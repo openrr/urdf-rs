@@ -1,6 +1,7 @@
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone)]
@@ -575,6 +576,118 @@ pub struct Robot {
     pub materials: Vec<Material>,
 }
 
+impl Robot {
+    /// Convert Robot into RobotTree
+    /// RobotTree is a tree structure of Robot, which makes it easier to traverse the robot structure.
+    /// you can use `Robot::into_tree` to convert Robot into RobotTree.
+    /// you can also see the tree structure by using `RobotTree::format_tree` method.
+    pub fn into_tree(self) -> RobotTree {
+        assert!(
+            !self.links.is_empty(),
+            "Robot::into_tree requires at least one link",
+        );
+
+        let mut links_iter = self.links.into_iter();
+        let root_link = links_iter
+            .next()
+            .expect("checked above for at least one link");
+        let mut link_map: HashMap<String, Link> =
+            links_iter.map(|link| (link.name.clone(), link)).collect();
+
+        let mut adjacency: HashMap<String, Vec<Joint>> = HashMap::new();
+        for joint in self.joints {
+            adjacency
+                .entry(joint.parent.link.clone())
+                .or_default()
+                .push(joint);
+        }
+
+        let tree = build_robot_tree(root_link, &mut link_map, &mut adjacency);
+
+        if let Some(orphan) = link_map.keys().next() {
+            panic!(
+                "Unreachable link `{}` found while building RobotTree",
+                orphan
+            );
+        }
+        if let Some(orphan_parent) = adjacency.keys().next() {
+            panic!(
+                "Parent link `{}` has outgoing joints but is missing from the tree",
+                orphan_parent
+            );
+        }
+
+        tree
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct RobotTree {
+    pub link: Link,
+    pub joint: Vec<Joint>,
+    pub children: Vec<RobotTree>,
+}
+
+impl std::fmt::Display for RobotTree {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn walk(node: &RobotTree, prefix: String, out: &mut String) {
+            assert_eq!(node.joint.len(), node.children.len());
+            let child_count = node.children.len();
+            for (index, (joint, child)) in node.joint.iter().zip(node.children.iter()).enumerate() {
+                out.push_str(&prefix);
+                out.push_str("+-- ");
+                out.push_str(&child.link.name);
+                out.push_str(" [joint: ");
+                out.push_str(&joint.name);
+                out.push_str("]\n");
+
+                let mut child_prefix = prefix.clone();
+                child_prefix.push_str(if index + 1 == child_count {
+                    "    "
+                } else {
+                    "|   "
+                });
+                walk(child, child_prefix, out);
+            }
+        }
+
+        let mut out = String::new();
+        out.push_str(&self.link.name);
+        out.push('\n');
+        walk(self, String::new(), &mut out);
+        write!(f, "{}", out)
+    }
+}
+
+fn build_robot_tree(
+    link: Link,
+    links: &mut HashMap<String, Link>,
+    adjacency: &mut HashMap<String, Vec<Joint>>,
+) -> RobotTree {
+    let joints = adjacency.remove(&link.name).unwrap_or_default();
+    let mut edges = Vec::with_capacity(joints.len());
+    let mut children = Vec::with_capacity(joints.len());
+
+    for joint in joints {
+        let child_name = joint.child.link.clone();
+        let child_link = links.remove(&child_name).unwrap_or_else(|| {
+            panic!(
+                "Joint `{}` references missing child link `{}`",
+                joint.name, child_name
+            )
+        });
+        let child_tree = build_robot_tree(child_link, links, adjacency);
+        edges.push(joint);
+        children.push(child_tree);
+    }
+
+    RobotTree {
+        link,
+        joint: edges,
+        children,
+    }
+}
+
 fn de_f64<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
     D: Deserializer<'de>,
@@ -624,5 +737,33 @@ impl<'de> Visitor<'de> for OptF64Visitor {
         E: serde::de::Error,
     {
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::read_file;
+    use std::path::PathBuf;
+
+    #[test]
+    fn renders_sample_tree() {
+        let mut sample = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        sample.push("sample.urdf");
+
+        let robot = read_file(sample).expect("sample urdf should load");
+        let tree = robot.into_tree();
+        let rendered = format!("{tree}");
+
+        let expected = "\
+root
++-- shoulder1 [joint: shoulder_yaw]
+    +-- shoulder2 [joint: shoulder_pitch]
+        +-- shoulder3 [joint: shoulder_roll]
+            +-- elbow1 [joint: elbow_pitch]
+                +-- wrist1 [joint: wrist_yaw]
+                    +-- wrist2 [joint: wrist_pitch]
+";
+
+        assert_eq!(rendered, expected);
     }
 }
